@@ -1,0 +1,24 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+
+        <!-- Primary brand color -->
+        <item name="colorPrimary">#2196F3</item>
+        <!-- Darker variant for the status bar and contextual app bars -->
+        <item name="colorPrimaryDark">#1976D2</item>
+        <!-- Accent color -->
+        <item name="colorAccent">#FF4081</item>
+        <!-- Background color for views -->
+        <item name="android:windowBackground">@android:color/white</item>
+        <!-- Text color for primary content -->
+        <item name="android:textColorPrimary">@android:color/black</item>
+        <!-- Text color for secondary content -->
+        <item name="android:textColorSecondary">#FFFFFF</item>
+        <!-- Other theme attributes -->
+    </style>
+
+    <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
+</resources>
