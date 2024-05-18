@@ -7,13 +7,22 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Build;
 import android.os.Environment;
-import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -75,7 +84,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 //        Map<String, Object> map = new HashMap<>();
 //        map.put("name","Rohit");
 //        map.put("age",21);
-//        db.collection("users")
+//        db.("users")
 //                .add(map)
 //                .addOnSuccessListener(documentReference -> Log.d(">>>", "DocumentSnapshot added with ID: " + documentReference.getId()))
 //                .addOnFailureListener(e -> Log.w(">>>", "Error adding document", e));
@@ -109,7 +118,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    public void getAllDbRecords(Context context) throws IOException {
+    public void getAllDbRecords(DtoJson dtoJson, Context context) throws IOException {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("select * from invoices", null);
 
@@ -129,7 +138,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String column5 = cursor.getString(4);
 
                 // Construct CSV row
-                String csvRow = column1 + "," + column2 + "," + column3 + "," + column4+ "," + column5+ "\n";
+                String csvRow = column1 + "," +  column2 + "," + column3 + "," + column4+ "," + column5+ "\n";
 
                 // Write CSV row to file
                 writer.append(csvRow);
@@ -140,8 +149,32 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         // Close CSV writer
         writer.flush();
         writer.close();
+    }
 
-        Toast.makeText(context, "CSV file generated in \'Documents\'", Toast.LENGTH_SHORT).show();
+    public void deleteFireStoreData(Context context) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        CollectionReference collectionRef = db.collection("invoices");
+
+        collectionRef.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if (task.isSuccessful()) {
+                    QuerySnapshot querySnapshot = task.getResult();
+                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                        for (QueryDocumentSnapshot document : querySnapshot) {
+                            document.getReference().delete();
+                        }
+                        Toast.makeText(context, "Collection deleted successfully", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(context, "Collection is already empty", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(context, "Error deleting collection: " + task.getException(), Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
 
     }
 }

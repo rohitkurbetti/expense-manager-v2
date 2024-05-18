@@ -7,6 +7,13 @@ import java.util.Map;
 public class InvoiceConstants {
 
 
+    public static final String[] EMAIL_RECIPIENTS = {
+            "rkurbetti30@gmail.com",
+            "sumeetkurbetti04@gmail.com",
+            "rohitbackup47@gmail.com",
+            "rohitbackup0001@gmail.com",
+            "nitiningole1996@gmail.com"
+    };
     public static Map<String, Integer> ITEM_PRICE_MAP = new HashMap<>();
 
 

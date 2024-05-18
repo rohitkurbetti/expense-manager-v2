@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#000000" /> <!-- Default color, will be overridden in the adapter -->
+    <corners android:radius="608dp" /> <!-- Makes it a circle by setting the radius to half the width/height -->
+</shape>

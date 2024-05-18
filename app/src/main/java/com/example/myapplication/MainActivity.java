@@ -2,16 +2,17 @@ package com.example.myapplication;
 
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -21,7 +22,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -37,17 +40,17 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.json.JSONObject;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -68,6 +71,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+//        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // For Dark Mode
+//        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);  // For Light Mode
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);  // Follow system setting
+
         FirebaseApp.initializeApp(this);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -122,7 +129,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onLongClick(View view) {
 //                sendEmail();
-                getAllDocumentsFromCollection("invoices");
+//                getAllDocumentsFromCollection("invoices");
+                Intent intent = new Intent(MainActivity.this, RecyclerViewActivity.class);
+                startActivity(intent);
                 return false;
             }
         });
@@ -286,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
             long newRowId = dbHelper.saveInvoiceTransaction(dtoJsonStr,grandTotal, MainActivity.this);
             if(newRowId != -1){
 //                writeTextFile(dtoJsonStr);
+                writeAllDbContentInTxtFile(dtoJson,dbHelper);
                 resetSliders();
             }
         } else {
@@ -295,8 +305,6 @@ public class MainActivity extends AppCompatActivity {
 //        PDFGenerator.generateInvoicePDF(MainActivity.this, dtoJsonStr);
 //        writeTextFile(dtoJsonStr);
 
-//        writeAllDbContentInTxtFile(dbHelper);
-//        putDataFireStore(null,null);
     }
 
     private void resetSliders() {
@@ -307,8 +315,8 @@ public class MainActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    private void writeAllDbContentInTxtFile(DatabaseHelper dbHelper) throws IOException {
-        dbHelper.getAllDbRecords(MainActivity.this);
+    private void writeAllDbContentInTxtFile(DtoJson dtoJson, DatabaseHelper dbHelper) throws IOException {
+        dbHelper.getAllDbRecords(dtoJson,MainActivity.this);
     }
 
     private void writeTextFile(String dtoJsonStr) throws IOException {
@@ -348,14 +356,61 @@ public class MainActivity extends AppCompatActivity {
         // Handle action bar item clicks here
         int id = item.getItemId();
 
-        if (id == R.id.action_settings) {
-            Toast.makeText(this, "Cool", Toast.LENGTH_SHORT).show();
+        if (id == R.id.action_backup_via) {
+            sendEmailWithAttachment();
+            return true;
+        }
+
+        if (id == R.id.action_delete_cloud_date) {
+            deleteEntireCloudData();
+            return true;
+        }
+
+        if (id == R.id.action_test) {
+            callTest();
             return true;
         }
 
         // Handle other action bar items...
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void callTest() {
+        Intent intent = new Intent(this, CardActivity.class);
+
+        startActivity(intent);
+    }
+
+    private void deleteEntireCloudData() {
+        dbHelper.deleteFireStoreData(MainActivity.this);
+    }
+
+    private void sendEmailWithAttachment() {
+
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+        String filePath = path + File.separator + "InvoicesBackup.csv";
+
+        File file = new File(filePath);
+
+        Uri uri = FileProvider.getUriForFile(this, this.getApplicationContext().getPackageName() + ".provider", file);
+
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.setType("text/csv");
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, InvoiceConstants.EMAIL_RECIPIENTS);
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoices Backup "+ new SimpleDateFormat("dd-MM-yyyy hh:mm a").format(new Date()));
+//        emailIntent.putExtra(Intent.EXTRA_TEXT, "Email body text");
+
+
+        emailIntent.putExtra(Intent.EXTRA_STREAM, uri);
+
+        try {
+            startActivity(Intent.createChooser(emailIntent, "Send email using..."));
+        } catch (android.content.ActivityNotFoundException ex) {
+            Log.e("MainActivity", "No email client found", ex);
+        }
+
+
     }
 
 
