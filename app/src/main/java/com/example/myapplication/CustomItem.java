@@ -55,9 +55,13 @@ public class CustomItem {
         this.amount = amount;
     }
 
-    @NonNull
     @Override
     public String toString() {
-        return super.toString();
+        return "CustomItem{" +
+                "name='" + name + '\'' +
+                ", checked=" + checked +
+                ", sliderValue=" + sliderValue +
+                ", amount=" + amount +
+                '}';
     }
 }

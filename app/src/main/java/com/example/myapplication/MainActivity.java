@@ -6,10 +6,14 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
@@ -52,6 +56,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -103,10 +108,9 @@ public class MainActivity extends AppCompatActivity {
         itemList.add(new CustomItem("Water_F", false, 0));
         itemList.add(new CustomItem("Mng_Lssi_H", false, 0));
         itemList.add(new CustomItem("Mng_Lssi_F", false, 0));
-        itemList.add(new CustomItem("Taak", false, 0));
         itemList.add(new CustomItem("Btrsch", false, 0));
 
-        adapter = new CustomAdapter(itemList);
+        adapter = new CustomAdapter(this, itemList);
         adapter.notifyItemRangeChanged(0, adapter.getItemCount());
         recyclerView.setItemViewCacheSize(itemList.size());
         recyclerView.setAdapter(adapter);
@@ -236,13 +240,20 @@ public class MainActivity extends AppCompatActivity {
             textView.setText(null);
             builder.setView(customView);
             builder.setCancelable(false);
-            StringBuilder stringBuilder = new StringBuilder();
+
+            SpannableStringBuilder stringBuilder = new SpannableStringBuilder();
+
+            char bulletSymbol='\u2022';
+
             itemList = itemList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
             AtomicInteger ctr = new AtomicInteger(1);
             itemList.stream().forEach(i -> {
-                stringBuilder.append((ctr.getAndIncrement()) + "\t " + i.getName() + "\t " + (int) i.getSliderValue() + "\n\n");
+                int randomColor = getRandomNiceColor();
+                String colorText = (bulletSymbol) + "\t\t " + i.getName() + "\t " + (int) i.getSliderValue() + "\n\n";
+                stringBuilder.append(colorText, new ForegroundColorSpan(randomColor), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
             });
-            textView.setText(stringBuilder.toString());
+            textView.setText(stringBuilder);
 
 
             List<CustomItem> finalItemList = itemList;
@@ -270,8 +281,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private int getRandomNiceColor() {
+        // Define an array of specific nice-looking colors
+        int[] colors = new int[] {
+                Color.rgb(129, 199, 132),  // Light Green
+                Color.rgb(100, 181, 246),  // Light Blue
+                Color.rgb(255, 213, 79),   // Amber
+                Color.rgb(239, 83, 80),    // Light Red
+                Color.rgb(186, 104, 200),  // Light Purple
+                Color.rgb(255, 167, 38),   // Orange
+                Color.rgb(38, 198, 218),   // Cyan
+                Color.rgb(255, 112, 67),   // Deep Orange
+                Color.rgb(255, 241, 118),  // Light Yellow
+                Color.rgb(174, 213, 129)   // Pale Green
+        };
 
+        // Generate a random index to pick a color
+        Random random = new Random();
+        int randomIndex = random.nextInt(colors.length);
 
+        // Return the randomly selected color
+        return colors[randomIndex];
+    }
 
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -295,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
             long newRowId = dbHelper.saveInvoiceTransaction(dtoJsonStr,grandTotal, MainActivity.this);
             if(newRowId != -1){
 //                writeTextFile(dtoJsonStr);
-                writeAllDbContentInTxtFile(dtoJson,dbHelper);
+//                writeAllDbContentInTxtFile(dtoJson,dbHelper);
                 resetSliders();
             }
         } else {
@@ -377,7 +408,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void callTest() {
-        Intent intent = new Intent(this, CardActivity.class);
+        Intent intent = new Intent(this, SharedPrefActivity.class);
 
         startActivity(intent);
     }

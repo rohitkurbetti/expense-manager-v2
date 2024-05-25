@@ -17,7 +17,7 @@
     <item
         android:id="@+id/action_test"
         android:orderInCategory="100"
-        android:title="action_test"
+        android:title="Set Item Prices"
         app:showAsAction="never"
         />
 

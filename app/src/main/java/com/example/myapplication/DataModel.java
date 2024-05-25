@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class DataModel implements Serializable {
     private String id; // Document ID
@@ -9,6 +10,8 @@ public class DataModel implements Serializable {
     private String timestamp;
     private String profileImageUrl;
     private String date;
+    private List<CustomItem> itemList;
+    private String json;
 
     private boolean isSelected = false;
 
@@ -94,6 +97,22 @@ public class DataModel implements Serializable {
 
     public void setSelected(boolean selected) {
         isSelected = selected;
+    }
+
+    public String getJson() {
+        return json;
+    }
+
+    public void setJson(String json) {
+        this.json = json;
+    }
+
+    public List<CustomItem> getItemList() {
+        return itemList;
+    }
+
+    public void setItemList(List<CustomItem> itemList) {
+        this.itemList = itemList;
     }
 }
 

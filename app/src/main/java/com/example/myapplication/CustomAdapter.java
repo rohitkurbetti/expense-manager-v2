@@ -1,5 +1,7 @@
 package com.example.myapplication;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,8 +16,15 @@ import java.util.List;
 import java.util.Locale;
 
 public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomViewHolder> {
+    private static final String SHARED_PREFS_FILE = "my_shared_prefs";
 
+    private Context context;
     private List<CustomItem> itemList;
+
+    public CustomAdapter(Context context, List<CustomItem> itemList) {
+        this.context = context;
+        this.itemList = itemList;
+    }
 
     public CustomAdapter(List<CustomItem> itemList) {
         this.itemList = itemList;
@@ -71,6 +80,11 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
     }
 
     private int getItemPrice(String name) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+        int retrievedIntValue = sharedPreferences.getInt(name.toUpperCase(Locale.getDefault()), 0);
+        if(retrievedIntValue>0){
+            return retrievedIntValue;
+        }
         int price = InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(name.toUpperCase(Locale.getDefault()),0);
         return price;
     }

@@ -9,8 +9,10 @@
         <color name="colorPrimaryDark">#303F9F</color>
         <color name="colorAccent">#FF4081</color>
 
-        <color name="yellow1">#EEDC82</color>
+        <color name="yellow1">#FFBE4F</color>
 
+        <color name="cyan">#FF5722</color>
+        <color name="orange">#FFB443</color>
 
 
 </resources>
