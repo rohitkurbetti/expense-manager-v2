@@ -12,9 +12,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.adapters.DataAdapter;
+import com.example.myapplication.adapterholders.DataModel;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.CollectionReference;
@@ -42,9 +45,17 @@ public class RecyclerViewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_recycler_view);
 
         recyclerView = findViewById(R.id.recyclerView);
+        SearchView searchView = findViewById(R.id.searchView);
+
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
         pd = new ProgressDialog(this);
         dataList = new ArrayList<>();
+
+        db = FirebaseFirestore.getInstance();
+//        fetchDataFromFirestore();
+        getAllDocumentsFromCollection("invoices");
+
 
         dataAdapter = new DataAdapter(dataList);
         dataAdapter = new DataAdapter(dataList, new DataAdapter.OnItemClickListener() {
@@ -64,9 +75,20 @@ public class RecyclerViewActivity extends AppCompatActivity {
 
         recyclerView.setAdapter(dataAdapter);
 
-        db = FirebaseFirestore.getInstance();
-//        fetchDataFromFirestore();
-        getAllDocumentsFromCollection("invoices");
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                dataAdapter.filter(newText);
+                return false;
+            }
+        });
+
+
 //        dataList.add(new DataModel("title1","subtitle1","2024-05-17",null));
 //        dataList.add(new DataModel("title2","subtitle2","2024-05-17",null));
 //        dataList.add(new DataModel("title3","subtitle3","2024-05-17",null));
@@ -212,6 +234,7 @@ public class RecyclerViewActivity extends AppCompatActivity {
                                     createdDate));
 
                         }
+                        new DataAdapter(dataList);
                         dataAdapter.notifyDataSetChanged();
 
                     }

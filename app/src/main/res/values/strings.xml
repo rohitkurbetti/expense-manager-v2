@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Invoice Manager</string>
     <string name="action_option1">Backup via</string>
     <string name="action_option2">Delete all cloud data</string>
     <string name="profile_image">profile description</string>

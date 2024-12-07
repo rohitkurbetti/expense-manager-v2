@@ -21,4 +21,20 @@
         app:showAsAction="never"
         />
 
+    <item
+        android:id="@+id/action_reports"
+        android:orderInCategory="100"
+        android:title="Reports"
+        app:showAsAction="never"
+        />
+
+
+
+    <item
+        android:id="@+id/action_add_item"
+        android:orderInCategory="100"
+        android:title="Add Item"
+        app:showAsAction="never"
+        />
+
 </menu>

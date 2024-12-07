@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Custom style for the Spinner -->
+    <style name="CustomSpinnerStyle" parent="Widget.AppCompat.Spinner">
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:textColor">#000000</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <!-- Custom style for the Spinner dropdown items -->
+    <style name="CustomSpinnerDropdownItemStyle" parent="TextAppearance.AppCompat.Widget.DropDownItem">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:background">#6200EE</item>
+        <item name="android:padding">8dp</item>
+    </style>
+
+</resources>

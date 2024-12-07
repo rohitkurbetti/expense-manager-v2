@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="20dp">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="10dp"
+        android:padding="10dp"
+        android:gravity="center"
+        >
+
+        <EditText
+            android:id="@+id/editTextText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ems="10"
+            android:layout_marginHorizontal="5dp"
+            android:inputType="text"
+            android:hint="Enter Item" />
+
+
+        <ImageButton
+            android:src="@drawable/ic_delete"
+            android:id="@+id/buttonClear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear" />
+
+
+
+    </LinearLayout>
+
+    <EditText
+        android:enabled="false"
+        android:hint="Items Will be visible here"
+        android:id="@+id/editTextTextMultiLine"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="30"
+        android:layout_weight="1"
+        android:padding="10dp"
+        android:layout_margin="20dp"
+        android:gravity="start|top"
+        android:inputType="textMultiLine" />
+
+    <Button
+        android:layout_margin="20dp"
+        android:id="@+id/buttonAdd"
+        android:layout_marginRight="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add" />
+
+
+
+</LinearLayout>
