@@ -1,6 +1,9 @@
 package com.example.myapplication;
 
 import android.Manifest;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
+import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -11,29 +14,36 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.ForegroundColorSpan;
 import android.util.Base64;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -50,22 +60,28 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.adapters.CsvAdapter;
 import com.example.myapplication.adapters.CustomAdapter;
+import com.example.myapplication.adapters.NestedListAdapter;
+import com.example.myapplication.adapters.NestedOtherListAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.dtos.DtoJson;
+import com.example.myapplication.dtos.DtoJsonEntity;
 import com.example.myapplication.utils.PDFGeneratorUtil;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -85,6 +101,8 @@ import com.itextpdf.layout.property.TextAlignment;
 import com.itextpdf.layout.property.UnitValue;
 
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -93,6 +111,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -101,35 +120,44 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
 public class MainActivity extends AppCompatActivity {
-    private static final String SHARED_PREFS_FILE = "my_shared_prefs";
 
+    private static final String SHARED_PREFS_FILE = "my_shared_prefs";
+    private static final String FIRST_LAUNCH_KEY = "isFirstLaunch";
+
+    private final String csvFileName = "item_list.csv";
+    private boolean isIconOne = true;
     boolean isLoadFromSystem = true;
     private RecyclerView recyclerView;
     private CustomAdapter adapter;
-    private static List<CustomItem> itemList;
+    public static List<CustomItem> itemList;
     DatabaseHelper dbHelper;
     private ArrayAdapter<String> spinnerAdapter;
     private Map<String,Integer> otherItemsMap;
-
-
     ProgressDialog pd;
     private static final int REQUEST_MANAGE_STORAGE = 123;
     private static final int REQUEST_WRITE_STORAGE = 112;
     private boolean doubleBackToExitPressedOnce = false;
-
+    private List<CustomItem> otherItemsList;
+    private ListView otherListView;
+    private TextView bannerOtherItems;
+    private TextView selectDateLink;
+    private SharedPreferences sharedPreferences;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -147,6 +175,13 @@ public class MainActivity extends AppCompatActivity {
             checkStoragePermission();
         }
 
+        sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, MODE_PRIVATE);
+
+        // Check if app is launched for the first time
+        if (isFirstLaunch()) {
+            showSetItemPricesDialog();
+        }
+
 
 
         FirebaseApp.initializeApp(this);
@@ -155,13 +190,14 @@ public class MainActivity extends AppCompatActivity {
         dbHelper = new DatabaseHelper(getApplicationContext());
         pd = new ProgressDialog(this);
         recyclerView = findViewById(R.id.recyclerView);
+        TextView tvSelectiveTotalText = findViewById(R.id.tvSelectiveTotalText);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         itemList = new ArrayList<>();
         loadItemsFromSystem(itemList);
 
 
-        adapter = new CustomAdapter(this, itemList);
+        adapter = new CustomAdapter(this, itemList, tvSelectiveTotalText);
         adapter.notifyItemRangeChanged(0, adapter.getItemCount());
         recyclerView.setItemViewCacheSize(itemList.size());
         recyclerView.setAdapter(adapter);
@@ -191,6 +227,36 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private boolean isFirstLaunch() {
+        return sharedPreferences.getBoolean(FIRST_LAUNCH_KEY, true);
+    }
+
+    private void showSetItemPricesDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Set Item Prices")
+                .setMessage("Please set the item prices")
+                .setPositiveButton("Set", (dialog, which) -> {
+                    // Redirect to Set Item Prices Activity
+                    callTest();
+
+                    // Save flag to prevent dialog from showing again
+//                    markFirstLaunchDone();
+                })
+                .setNegativeButton("Don't set", (dialog, which) -> {
+                    // Just dismiss the dialog
+//                    markFirstLaunchDone();
+                    dialog.dismiss();
+                })
+                .setCancelable(false) // Prevent dismissal by tapping outside
+                .show();
+    }
+
+    private void markFirstLaunchDone() {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(FIRST_LAUNCH_KEY, false);
+        editor.apply();
     }
 
     private void loadItemsFromFile(List<CustomItem> itemList, MenuItem menuItem) {
@@ -290,32 +356,115 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadItemsFromSystem(List<CustomItem> itemList) {
         itemList.clear();
-        itemList.add(new CustomItem("Orange", false, 0));
-        itemList.add(new CustomItem("Kokam", false, 0));
-        itemList.add(new CustomItem("L. Lemon", false, 0));
-        itemList.add(new CustomItem("L. Orange", false, 0));
-        itemList.add(new CustomItem("Sarbat", false, 0));
-        itemList.add(new CustomItem("S Sarbat", false, 0));
-        itemList.add(new CustomItem("Pachak", false, 0));
-        itemList.add(new CustomItem("L. Soda", false, 0));
-        itemList.add(new CustomItem("Wala", false, 0));
-        itemList.add(new CustomItem("Lassi_H", false, 0));
-        itemList.add(new CustomItem("Lassi_F", false, 0));
-        itemList.add(new CustomItem("J. Soda", false, 0));
-        itemList.add(new CustomItem("Taak", false, 0));
-        itemList.add(new CustomItem("Kulfi", false, 0));
-        itemList.add(new CustomItem("Stwbry Soda", false, 0));
-        itemList.add(new CustomItem("Water_H", false, 0));
-        itemList.add(new CustomItem("Water_F", false, 0));
-        itemList.add(new CustomItem("Mng_Lssi_H", false, 0));
-        itemList.add(new CustomItem("Mng_Lssi_F", false, 0));
-        itemList.add(new CustomItem("Btrsch", false, 0));
-        itemList.add(new CustomItem("Vanilla", false, 0));
-        itemList.add(new CustomItem("Pista", false, 0));
-        itemList.add(new CustomItem("Mango", false, 0));
-        itemList.add(new CustomItem("Strwbry", false, 0));
+        if(loadItemsFromInteralStorage(itemList, csvFileName)) {
+//            List<CustomItem> itemList1 = readCSVFromAssets(this, csvFileName);
+//            itemList.addAll(itemList1);
+//            itemList1.clear();
+
+
+
+//            appendToCSVInDownloads(fileName,"Fruit Beer");
+
+//            loadItemsFromInteralStorage(itemList, csvFileName);
+
+
+        } else {
+
+            itemList.add(new CustomItem("Orange", false, 0));
+            itemList.add(new CustomItem("Lemon", false, 0));
+            itemList.add(new CustomItem("Kokam", false, 0));
+            itemList.add(new CustomItem("L. Lemon", false, 0));
+            itemList.add(new CustomItem("L. Orange", false, 0));
+            itemList.add(new CustomItem("Sarbat", false, 0));
+            itemList.add(new CustomItem("S Sarbat", false, 0));
+            itemList.add(new CustomItem("Pachak", false, 0));
+            itemList.add(new CustomItem("L. Soda", false, 0));
+            itemList.add(new CustomItem("Wala", false, 0));
+            itemList.add(new CustomItem("Lassi_H", false, 0));
+            itemList.add(new CustomItem("Lassi_F", false, 0));
+            itemList.add(new CustomItem("J. Soda", false, 0));
+            itemList.add(new CustomItem("Taak", false, 0));
+            itemList.add(new CustomItem("Kulfi", false, 0));
+            itemList.add(new CustomItem("Stwbry Soda", false, 0));
+            itemList.add(new CustomItem("Water_H", false, 0));
+            itemList.add(new CustomItem("Water_F", false, 0));
+            itemList.add(new CustomItem("Mng_Lssi_H", false, 0));
+            itemList.add(new CustomItem("Mng_Lssi_F", false, 0));
+            itemList.add(new CustomItem("Btrsch", false, 0));
+            itemList.add(new CustomItem("Vanilla", false, 0));
+            itemList.add(new CustomItem("Pista", false, 0));
+            itemList.add(new CustomItem("Mango", false, 0));
+            itemList.add(new CustomItem("Strwbry", false, 0));
+        }
+
+
 
     }
+
+    private boolean loadItemsFromInteralStorage(List<CustomItem> itemList, String fileName) {
+        itemList.clear();
+        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File csvFile = new File(downloadsDir, fileName);
+
+        if (!csvFile.exists()) {
+            Log.e("CSVReader", "CSV file does not exist in Downloads folder");
+            return false;
+        }
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(csvFile));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Assuming CSV contains only one column per line: itemName
+                itemList.add(new CustomItem(line.trim(), false, 0));
+            }
+            reader.close();
+        } catch (IOException e) {
+            Log.e("CSVReader", "Error reading CSV file", e);
+            return false;
+        }
+        if(itemList.size() == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    private void appendToCSVInDownloads(String fileName, String itemName) {
+        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File csvFile = new File(downloadsDir, fileName);
+
+        try {
+            FileWriter fileWriter = new FileWriter(csvFile, true);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(itemName);
+            bufferedWriter.newLine();
+            bufferedWriter.close();
+        } catch (IOException e) {
+            Log.e("CSVReader", "Error writing to CSV file", e);
+        }
+    }
+
+    private void saveCSVInDownloads(String fileName, List<CustomItem> items) {
+        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File csvFile = new File(downloadsDir, fileName);
+
+        try {
+            FileWriter fileWriter = new FileWriter(csvFile, false);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+            for (CustomItem csvItem : items) {
+                bufferedWriter.write(csvItem.getName());
+                bufferedWriter.newLine();
+            }
+
+            bufferedWriter.close();
+            Toast.makeText(this, "Inserted "+ items.size() +" items", Toast.LENGTH_SHORT).show();
+//            loadItemsFromInteralStorage(items, fileName);
+        } catch (IOException e) {
+            Log.e("CSVReader", "Error writing to CSV file", e);
+        }
+    }
+
 
     private List<String> readCSVFromRawResource(File file) {
         List<String> coldDrinks = new ArrayList<>();
@@ -477,22 +626,75 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void showAlertDialog(List<CustomItem> itemList) {
         itemList = itemList.stream().filter(i -> i.getSliderValue()>0.0f).collect(Collectors.toList());
 
         if(itemList.size()>0) {
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Review items \t(Total "+itemList.stream().mapToInt(CustomItem::getAmount).sum()+")");
+            builder.setTitle("Review items");
+            builder.setIcon(R.drawable.checklist);
+//            builder.setTitle("Review items \t(Total "+itemList.stream().mapToInt(CustomItem::getAmount).sum()+")");
             final View customView = getLayoutInflater().inflate(R.layout.custom_table, null);
 
             CheckBox checkBox = customView.findViewById(R.id.checkbox);
             TextView textView = customView.findViewById(R.id.textView);
-            TextView otherTextView = customView.findViewById(R.id.otherTextView);
+            ListView nestedListView = customView.findViewById(R.id.nestedListView);
+            otherListView = customView.findViewById(R.id.otherListView);
+            bannerOtherItems = customView.findViewById(R.id.bannerOtherItems);
+            selectDateLink = customView.findViewById(R.id.selectDateLink);
+//            TextView otherTextView = customView.findViewById(R.id.otherTextView);
             LinearLayout dynamicLayout = customView.findViewById(R.id.dynamic_layout);
             textView.setText(null);
-            builder.setView(customView);
             builder.setCancelable(false);
+
+
+            // Set the ListView adapter
+            NestedListAdapter nestedListAdapter = new NestedListAdapter(this, itemList, nestedListView);
+            nestedListView.setAdapter(nestedListAdapter);
+            nestedListAdapter.notifyDataSetChanged();
+
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
+
+            LocalDate localDate = LocalDate.now();
+
+            String formtted = localDate.format(dateTimeFormatter);
+
+            selectDateLink.setText(formtted);
+
+            selectDateLink.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Get the current date
+                    Calendar calendar = Calendar.getInstance();
+                    int year = calendar.get(Calendar.YEAR);
+                    int month = calendar.get(Calendar.MONTH);
+                    int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+                    // Show DatePickerDialog
+                    DatePickerDialog datePickerDialog = new DatePickerDialog(
+                            MainActivity.this,
+                            (DatePicker view1, int selectedYear, int selectedMonth, int selectedDay) -> {
+                                // Handle selected date (month is 0-indexed, so add 1)
+                                String monthName = Month.of(selectedMonth+1).getDisplayName(TextStyle.SHORT, java.util.Locale.ENGLISH);
+                                String selectedDate = selectedDay + "-" + monthName + "-" + selectedYear;
+                                String strFmtDay = String.format("%02d",selectedDay);
+                                selectedDate = strFmtDay + "-" + monthName + "-" + selectedYear;
+                                selectDateLink.setText(selectedDate);
+                            },
+                            year, month, day);
+
+                    datePickerDialog.show();
+                }
+            });
+
+
+
+
+
+            builder.setView(customView);
 
             checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -504,29 +706,29 @@ public class MainActivity extends AppCompatActivity {
 //                        newTextView.setTextSize(16);
 
 //                        otherEntityView.setVisibility(View.VISIBLE);
-                        Map<String, Integer> itemsMap =   showOtherEntityAlert(otherTextView, false, checkBox);
+                        Map<String, Integer> itemsMap =   showOtherEntityAlert(null, false, checkBox);
                     } else {
                         otherItemsMap.clear();
-                        otherTextView.setText("");
+//                        otherTextView.setText("");
 //                        otherEntityView.setVisibility(View.GONE);
 //                        dynamicLayout.removeAllViews();
                     }
                 }
             });
 
-            SpannableStringBuilder stringBuilder = new SpannableStringBuilder();
+//            SpannableStringBuilder stringBuilder = new SpannableStringBuilder();
 
-            char bulletSymbol='\u2022';
-
-            itemList = itemList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
-            AtomicInteger ctr = new AtomicInteger(1);
-            itemList.stream().forEach(i -> {
-                int randomColor = getRandomNiceColor();
-                String colorText = (bulletSymbol) + "\t\t " + i.getName() + "\t " + (int) i.getSliderValue() + "\n\n";
-                stringBuilder.append(colorText, new ForegroundColorSpan(randomColor), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-            });
-            textView.setText(stringBuilder);
+//            char bulletSymbol='\u2022';
+//
+//            itemList = itemList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
+//            AtomicInteger ctr = new AtomicInteger(1);
+//            itemList.stream().forEach(i -> {
+//                int randomColor = getRandomNiceColor();
+//                String colorText = (bulletSymbol) + "\t\t " + i.getName() + "\t " + (int) i.getSliderValue() + "\n\n";
+//                stringBuilder.append(colorText, new ForegroundColorSpan(randomColor), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+//
+//            });
+//            textView.setText(stringBuilder);
 
 
             List<CustomItem> finalItemList = itemList;
@@ -539,7 +741,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
 
                         //map to list;
-                        List<CustomItem> otherItemsList = new ArrayList<>();
+                        otherItemsList = new ArrayList<>();
 
                         if(otherItemsMap !=null && otherItemsMap.size()>0){
                             otherItemsMap.forEach((k,v) -> {
@@ -548,7 +750,8 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
 
-                        calculate(finalItemList, otherItemsList);
+                        calculate(finalItemList, otherItemsList, selectDateLink.getText().toString(), false);
+                        otherItemsList.clear();
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -577,7 +780,7 @@ public class MainActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.other_entity, null, false);
 
         Button btnAddToBucket = view.findViewById(R.id.btnAddToBucket);
-        ImageButton btnDelSpinnerItem = view.findViewById(R.id.btnDelSpinnerItem);
+        ImageView btnDelSpinnerItem = view.findViewById(R.id.btnDelSpinnerItem);
         Spinner spinnerBucket = view.findViewById(R.id.spinnerBucket);
         EditText etItemName = view.findViewById(R.id.etItemName);
         EditText etItemValue = view.findViewById(R.id.etItemValue);
@@ -619,8 +822,17 @@ public class MainActivity extends AppCompatActivity {
                 String itemValue = etItemValue.getText().toString();
                 if(itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()){
                     addItemToSpinner(itemName, itemValue);
+                    showCustomToast("Item " + itemName + " added");
+                    animateBackground(spinnerBucket , false);
+
                 }
+
+
+
             }
+
+
+
 
             private void addItemToSpinner(String itemName, String itemValue) {
                 items.clear();
@@ -649,6 +861,8 @@ public class MainActivity extends AppCompatActivity {
                     items.remove(selectedItemPosition);
                     itemMap.remove(itemName.split(" = ")[0]);
                     spinnerAdapter.notifyDataSetChanged();
+                    showCustomToast("Item "+ itemName.split(" = ")[0] +" removed");
+
                 }
             }
         });
@@ -656,7 +870,7 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Other entities");
         builder.setCancelable(false);
-
+        builder.setIcon(R.drawable.checklist);
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
@@ -667,22 +881,31 @@ public class MainActivity extends AppCompatActivity {
                 System.err.println("MAP json >>> "+itemMap);
 
                 otherItemsMap.putAll(itemMap);
+                otherItemsList = new ArrayList<>();
+//                if(otherItemsOnly){
 
-                if(otherItemsOnly){
-                    List<CustomItem> otherItemsList = new ArrayList<>();
 
                     if(otherItemsMap !=null && otherItemsMap.size()>0){
                         otherItemsMap.forEach((k,v) -> {
                             CustomItem customItem = new CustomItem(k,false, 1, v);
                             otherItemsList.add(customItem);
+                            SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+                            // Use the editor to put values into SharedPreferences
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putInt(k.toUpperCase(Locale.getDefault()), v);
+                            // Commit the changes
+                            editor.apply();
                         });
                         try {
-                            calculate(new ArrayList<>(),otherItemsList);
+                            if(otherItemsOnly){
+                                calculate(new ArrayList<>(),otherItemsList, null, otherItemsOnly);
+                                otherItemsList.clear();
+                            }
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     }
-                }
+//                }
 
             }
         });
@@ -700,19 +923,29 @@ public class MainActivity extends AppCompatActivity {
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
-                if(otherItemsMap != null && otherItemsMap.size()>0 && otherTextView != null){
-                    char bulletSymbol='\u2022';
+                if(otherItemsList != null && otherItemsList.size()>0 ){
+//                    char bulletSymbol='\u2022';
+//
+//                    SpannableStringBuilder stringBuilder = new SpannableStringBuilder();
+//                    stringBuilder.append("Other Items: \n\n");
+//                    otherItemsMap.forEach((k,v) -> {
+//                        int randomColor = getRandomNiceColor();
+//                        String colorText = (bulletSymbol) + "\t\t " + k + "\t " + v + "\n\n";
+//                        stringBuilder.append(colorText, new ForegroundColorSpan(randomColor), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+//
+//                    });
+//                    otherTextView.setText(stringBuilder);
+                    otherListView.setVisibility(View.VISIBLE);
+                    bannerOtherItems.setVisibility(View.VISIBLE);
 
-                    SpannableStringBuilder stringBuilder = new SpannableStringBuilder();
-                    stringBuilder.append("Other Items: \n\n");
-                    otherItemsMap.forEach((k,v) -> {
-                        int randomColor = getRandomNiceColor();
-                        String colorText = (bulletSymbol) + "\t\t " + k + "\t " + v + "\n\n";
-                        stringBuilder.append(colorText, new ForegroundColorSpan(randomColor), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    NestedOtherListAdapter nestedOtherListAdapter = new NestedOtherListAdapter(builder.getContext(), otherItemsList,otherListView, checkBox,bannerOtherItems);
+                    otherListView.setAdapter(nestedOtherListAdapter);
 
-                    });
-                    otherTextView.setText(stringBuilder);
+                    nestedOtherListAdapter.notifyDataSetChanged();
+
                 } else {
+//                    otherListView.setVisibility(View.GONE);
+//                    bannerOtherItems.setVisibility(View.GONE);
                     if(checkBox != null){
                         checkBox.setChecked(false);
                     }
@@ -722,6 +955,66 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
         return itemMap;
+    }
+
+    private void animateBackground(Spinner spinnerBucket, boolean isDelete) {
+        // Define the start and end colors.
+        // Start with current background color (assume transparent if not set)
+        int colorFrom = Color.WHITE;
+        int colorTo = Color.parseColor("#ffd966"); // Light yellow
+
+        // Determine whether the current theme is dark or light
+        int currentNightMode = spinnerBucket.getContext().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
+            // Dark theme: Use a subtle dark highlight (e.g., a muted gray or dark accent)
+            colorTo = Color.parseColor("#555555"); // Example: dark gray highlight for dark theme
+
+            TypedValue typedValue = new TypedValue();
+            getTheme().resolveAttribute(android.R.attr.colorBackgroundFloating, typedValue, true);
+            int alertDialogBgColor = typedValue.data;
+
+            colorFrom = alertDialogBgColor;
+        } else {
+            // Light theme: Use a light yellow highlight
+            colorTo = Color.parseColor("#ffd966"); // Light yellow
+            colorFrom = Color.WHITE;
+        }
+//        if(isDelete) {
+//            colorTo = Color.parseColor("#FF9999");
+//        }
+
+
+        // Create a ValueAnimator that goes from the start color to the end color and back to the start color.
+        ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo, colorFrom);
+        colorAnimation.setDuration(900); // Total animation duration in milliseconds
+        colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animator) {
+                spinnerBucket.setBackgroundColor((int) animator.getAnimatedValue());
+            }
+        });
+        colorAnimation.start();
+    }
+
+    private void setListViewHeightBasedOnChildren(View listView, ViewGroup parent) {
+        ListAdapter listAdapter = this.otherListView.getAdapter();
+        if (listAdapter == null) {
+            return;
+        }
+
+        int totalHeight = 0;
+        int desiredWidth = View.MeasureSpec.makeMeasureSpec(listView.getWidth(), View.MeasureSpec.UNSPECIFIED);
+
+        for (int i = 0; i < listAdapter.getCount(); i++) {
+            View listItem = listAdapter.getView(i, null, parent);
+            listItem.measure(desiredWidth, View.MeasureSpec.UNSPECIFIED);
+            totalHeight += listItem.getMeasuredHeight();
+        }
+
+        ViewGroup.LayoutParams params = this.otherListView.getLayoutParams();
+        params.height = totalHeight + (this.otherListView.getDividerHeight() * (listAdapter.getCount() - 1));
+        listView.setLayoutParams(params);
+        listView.requestLayout();
     }
 
     private int getRandomNiceColor() {
@@ -749,18 +1042,28 @@ public class MainActivity extends AppCompatActivity {
 
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private void calculate(List<CustomItem> itemList, List<CustomItem> otherItemsList) throws IOException {
+    private void calculate(List<CustomItem> itemList, List<CustomItem> otherItemsList, String selectDate, Boolean otherItemsOnly) throws IOException {
         itemList = itemList.stream().filter(i -> i.getSliderValue()>0.0f).collect(Collectors.toList());
         otherItemsList = otherItemsList.stream().filter(i -> i.getSliderValue()>0.0f).collect(Collectors.toList());
 
+        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("dd-MMM-yyyy").toFormatter(Locale.ENGLISH);
+        if(selectDate==null){
+            selectDate = String.valueOf(LocalDate.now());
+        }
+        LocalDate localDate=LocalDate.now();
+        if(otherItemsOnly) {
+            localDate = LocalDate.parse(selectDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        } else {
+            localDate = LocalDate.parse(selectDate, dateTimeFormatter);
+        }
         if(itemList.size()>0 || otherItemsList.size()>0){
 
             Long grandTotal = getTotal(itemList,otherItemsList);
 
             DtoJson dtoJson = new DtoJson();
             dtoJson.setName(null);
-            dtoJson.setDate(String.valueOf(LocalDate.now()));
-            dtoJson.setCreateddtm(String.valueOf(LocalDateTime.now()));
+            dtoJson.setDate(localDate.toString());
+            dtoJson.setCreateddtm(createDtmFromLocalDate(localDate));
             dtoJson.setTotal(grandTotal);
             dtoJson.setItemList(itemList);
             dtoJson.setOtherItemsList(otherItemsList);
@@ -768,7 +1071,7 @@ public class MainActivity extends AppCompatActivity {
             String dtoJsonStr =  convertCustomItemsToJson(dtoJson);
             System.err.println(dtoJsonStr);
 
-            long newRowId = dbHelper.saveInvoiceTransaction(dtoJsonStr,grandTotal, MainActivity.this);
+            long newRowId = dbHelper.saveInvoiceTransaction("\""+dtoJsonStr+"\"",grandTotal, MainActivity.this, dtoJson, null);
             if(newRowId != -1){
                 writeTextFile(dtoJsonStr);
                 File pdfFile = PDFGeneratorUtil.generateInvoice(dtoJson, newRowId, getApplicationContext());
@@ -793,6 +1096,13 @@ public class MainActivity extends AppCompatActivity {
 //        PDFGenerator.generateInvoicePDF(MainActivity.this, dtoJsonStr);
 //        writeTextFile(dtoJsonStr);
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private String createDtmFromLocalDate(LocalDate localDate) {
+        LocalDateTime localDateTime = LocalDateTime.now();
+        return localDate.toString()+" "+String.format("%02d",localDateTime.getHour())+":"
+                +String.format("%02d",localDateTime.getMinute())+":"+String.format("%02d",localDateTime.getSecond());
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -1007,7 +1317,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private String convertCustomItemsToJson(DtoJson dtoJson) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        Gson gson = new GsonBuilder().create();
         return gson.toJson(dtoJson);
     }
 
@@ -1035,15 +1345,32 @@ public class MainActivity extends AppCompatActivity {
         }, 700); // Time window for double press in milliseconds (2 seconds)
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here
         int id = item.getItemId();
 
+        if (id == R.id.action_expense_manager) {
+            launchExpenseManager();
+            return true;
+        }
+
         if (id == R.id.action_backup_via) {
             sendEmailWithAttachment();
             return true;
         }
+
+        if (id == R.id.action_restore) {
+            try {
+                restoreFromBackedUpCsv();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return true;
+        }
+
+
 
         if (id == R.id.action_delete_cloud_date) {
             deleteEntireCloudData();
@@ -1061,10 +1388,69 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        if (id == R.id.action_add_item) {
-            addMenuItem();
+//        if (id == R.id.action_add_item) {
+//            addMenuItem();
+//            return true;
+//        }
+
+        if (id == R.id.action_delete_item) {
+            deleteItem();
             return true;
         }
+
+        if (id == R.id.action_fetch_cloud_data) {
+            getAllCloudDetails();
+            return true;
+        }
+
+        if (id == R.id.resetItemCsv) {
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                // Code to execute after 500ms
+                resetItemCsv();
+            }, 500);
+
+            return true;
+        }
+
+        if (id == R.id.deleteSqliteData) {
+            dbHelper.deleteAllData();
+            Toast.makeText(this, "All app data deleted", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        if (id == R.id.toggle_cloud_store) {
+            SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+            // Use the editor to put values into SharedPreferences
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("toggleCloudStore", !sharedPreferences.getBoolean("toggleCloudStore", false));
+            editor.apply();
+
+            String cloudStorageState = "Off";
+            if(sharedPreferences.getBoolean("toggleCloudStore", false)) {
+                cloudStorageState = "On";
+                item.setIcon(R.drawable.cloud_computing_enabled_data);  // Switch to icon two
+            } else {
+                cloudStorageState = "Off";
+                item.setIcon(R.drawable.cloud_computing_nodata);  // Switch back to icon one
+            }
+            isIconOne = !isIconOne;
+
+            Toast.makeText(this, "Cloud storage: "+cloudStorageState, Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        if (id == R.id.config) {
+            Intent intent = new Intent(this, ConfigActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
+        if (id == R.id.sqliteData) {
+            Intent intent = new Intent(this, SqliteDataActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
 
 
 //        if (id == R.id.action_load_from_file) {
@@ -1084,6 +1470,199 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void restoreFromBackedUpCsv() throws IOException {
+
+        List<DtoJsonEntity> invoices = new ArrayList<>();
+
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+        String filePath = path + File.separator + "InvoicesBackup.csv";
+
+        File docsDir = new File(filePath);
+
+        if (!docsDir.exists()) {
+            Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
+        }
+
+
+        // Read CSV file
+        BufferedReader reader = new BufferedReader(new FileReader(docsDir));
+        String line;
+        boolean firstLine = true;
+        int counter =0;
+        while ((line = reader.readLine()) != null) {
+//            if (firstLine) {
+//                firstLine = false; // Skip header line
+//                continue;
+//            }
+
+            // Split CSV by commas, handling JSON strings with quotes
+            String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+
+            if (columns.length >= 5) {
+                Long invoiceId = Long.parseLong(columns[0].trim());
+                String itemListJson = columns[1].trim();
+                Long total = Long.parseLong(columns[2].trim());
+                String createdDateTime = columns[3].trim();
+                String createdDate = columns[4].trim();
+
+                DtoJson dtoJson = new DtoJson();
+                dtoJson.setCreateddtm(createdDateTime);
+                dtoJson.setDate(createdDate);
+
+                long newRowId = dbHelper.saveInvoiceTransaction(itemListJson,total, MainActivity.this, dtoJson, invoiceId);
+                if(newRowId != -1) {
+                    ++counter;
+                }
+            }
+        }
+        Toast.makeText(this, "Restored "+counter+" rows", Toast.LENGTH_SHORT).show();
+        reader.close();
+
+
+
+    }
+
+    private void launchExpenseManager() {
+        Intent intent = new Intent(MainActivity.this, ExpenseActivity.class);
+        startActivity(intent);
+    }
+
+    private void deleteItem() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add / Remove items");
+        builder.setCancelable(false);
+        builder.setIcon(getDrawable(R.drawable.checklist));
+        List<CustomItem> csvItemsList = new ArrayList<>();
+        loadItemsFromInteralStorage(csvItemsList, csvFileName);
+
+        View csvViewLayout = getLayoutInflater().inflate(R.layout.csv_item_list, null , false);
+        ListView csvListView = csvViewLayout.findViewById(R.id.csvListView);
+        EditText etCsvItemName = csvViewLayout.findViewById(R.id.etCsvItemName);
+        Button btnAddCsvItem = csvViewLayout.findViewById(R.id.btnAddCsvItem);
+
+        etCsvItemName.requestFocus();
+
+        CsvAdapter csvAdapter= new CsvAdapter(this, csvItemsList);
+        csvListView.setAdapter(csvAdapter);
+
+        btnAddCsvItem.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(etCsvItemName!=null && StringUtils.isNotEmpty(etCsvItemName.getText())
+                        && !StringUtils.isNumeric(etCsvItemName.getText())) {
+                    String csvItemName = etCsvItemName.getText().toString();
+                    csvItemsList.add(new CustomItem(csvItemName, false, 0));
+                    csvAdapter.notifyDataSetChanged();
+                    etCsvItemName.setText("");
+                    csvListView.post(() -> csvListView.setSelection(csvAdapter.getCount() - 1));
+
+                }
+            }
+        });
+
+
+
+
+        builder.setView(csvViewLayout);
+
+
+        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                saveCSVInDownloads(csvFileName, csvItemsList);
+                itemList.clear();
+                itemList.addAll(csvItemsList);
+                adapter.notifyDataSetChanged();
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+
+    }
+
+    private List<CustomItem> readCSVFile(String fileName) {
+        List<CustomItem> items = new ArrayList<>();
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
+
+        if (!file.exists()) {
+            Log.e("TAG", "CSV file not found: " + file.getAbsolutePath());
+            return items;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                // Assuming CSV contains only one column per line: itemName
+                items.add(new CustomItem(line.trim(), false, 0));
+            }
+
+        } catch (IOException | NumberFormatException e) {
+            Log.e("TAG ", "Error reading CSV file", e);
+        }
+
+        return items;
+    }
+
+    private void resetItemCsv() {
+
+        AssetManager assetManager = getAssets();
+        InputStream in = null;
+        OutputStream out = null;
+
+        try {
+            // Open the CSV file from assets
+            in = assetManager.open(csvFileName);
+
+            // Define the Downloads directory path
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+            // Create the destination file
+            File outFile = new File(downloadsDir, csvFileName);
+            out = new FileOutputStream(outFile);
+
+            // Copy the file contents from assets to the Downloads directory
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+
+            // Close the streams
+            in.close();
+            out.close();
+            Toast.makeText(this, "Csv reset done", Toast.LENGTH_SHORT).show();
+            loadItemsFromInteralStorage(itemList, csvFileName);
+
+            adapter.notifyDataSetChanged();
+        } catch (IOException e) {
+            Toast.makeText(this, "Error :"+e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
+
+    }
+
+    private void createThatProgressMenu() {
+        Intent intent = new Intent(this, TestActivity.class);
+        startActivity(intent);
+    }
+
+    private void getAllCloudDetails() {
+        Intent intent = new Intent(this, CloudSummary.class);
+        startActivity(intent);
+    }
+
 
     private void addMenuItem() {
 
@@ -1095,7 +1674,7 @@ public class MainActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.add_menu_item, null, false);
 
         EditText etAddItem = view.findViewById(R.id.addItemEditText);
-        EditText etItemPrice = view.findViewById(R.id.etItemPrice);
+//        EditText etItemPrice = view.findViewById(R.id.etItemPrice);
 
         etAddItem.requestFocus();
 
@@ -1105,14 +1684,55 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
 
-                if(etAddItem != null && !etAddItem.getText().toString().isEmpty() &&
-                        etItemPrice != null && !etItemPrice.getText().toString().isEmpty()) {
+                if(etAddItem != null && !etAddItem.getText().toString().isEmpty()
+//                        && etItemPrice != null && !etItemPrice.getText().toString().isEmpty()
+                ) {
                     String itemName = etAddItem.getText().toString();
-                    String itemPrice = etItemPrice.getText().toString();
-                    updateMainItemList(itemName, itemPrice);
-                    Toast.makeText(MainActivity.this, "Item added "+itemName + "  (Rs. "+itemPrice+")", Toast.LENGTH_SHORT).show();
+//                    String itemPrice = etItemPrice.getText().toString();
+//                    updateMainItemList(itemName, itemPrice);
+//                    Toast.makeText(MainActivity.this, "Item added "+itemName + "  (Rs. "+itemPrice+")", Toast.LENGTH_SHORT).show();
+
+
+                    appendToCSVIfNotExists(itemName);
+
+
                 }
 
+            }
+
+            private void appendToCSVIfNotExists(String itemName) {
+                if (!isItemInCSV(itemName)) {
+                    appendToCSVInDownloads(csvFileName, itemName);
+                    loadItemsFromInteralStorage(itemList, csvFileName);
+                    Toast.makeText(MainActivity.this, "Item appended: " + itemName, Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.i("CSVReader", "Item already exists: " + itemName);
+                }
+            }
+
+            private boolean isItemInCSV(String itemName) {
+                File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                File csvFile = new File(downloadsDir, csvFileName);
+
+                if (!csvFile.exists()) {
+                    Log.e("CSVReader", "CSV file does not exist in Downloads folder");
+                    return false;
+                }
+
+                try {
+                    BufferedReader reader = new BufferedReader(new FileReader(csvFile));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.trim().equalsIgnoreCase(itemName.trim())) { // Case-insensitive check
+                            reader.close();
+                            return true;
+                        }
+                    }
+                    reader.close();
+                } catch (IOException e) {
+                    Log.e("CSVReader", "Error reading CSV file", e);
+                }
+                return false;
             }
         });
 
@@ -1156,7 +1776,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void callTest() {
-        Intent intent = new Intent(this, SharedPrefActivity.class);
+        Intent intent = new Intent(MainActivity.this, SharedPrefActivity.class);
         intent.putExtra("sharedPrefList", (Serializable) itemList);
         startActivity(intent);
     }
@@ -1174,7 +1794,21 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 pd.setMessage("Please wait");
                 pd.show();
-                dbHelper.deleteFireStoreData(MainActivity.this,pd);
+//                dbHelper.deleteFireStoreData(MainActivity.this,pd);
+                // Reference to the Firebase Realtime Database
+                FirebaseDatabase database = FirebaseDatabase.getInstance();
+                DatabaseReference databaseReference = database.getReference("invoices");
+                databaseReference.child("/").removeValue()
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                pd.dismiss();
+                                Toast.makeText(MainActivity.this, "Cloud database deleted", Toast.LENGTH_LONG).show();
+                            } else {
+                                pd.dismiss();
+                                Toast.makeText(MainActivity.this, "Failed to delete cloud data", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+
             }
         });
 
@@ -1218,5 +1852,27 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    private void showCustomToast(String message) {
+        // Inflate the custom layout
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast,
+                (ViewGroup) findViewById(R.id.custom_toast_container));
+
+        // Set the text for the toast
+        TextView toastText = layout.findViewById(R.id.toast_text);
+        toastText.setText(message);
+
+        // Optionally update the icon if needed
+        ImageView toastIcon = layout.findViewById(R.id.toast_icon);
+//                 toastIcon.setImageResource(R.drawable.baseline_face_24);
+
+        // Create and display the toast
+        Toast toast = new Toast(getApplicationContext());
+        toast.setDuration(Toast.LENGTH_SHORT);
+        toast.setView(layout);
+        toast.setGravity(Gravity.TOP|Gravity.CENTER,toast.getXOffset(), toast.getYOffset());
+        toast.show();
+    }
 
 }

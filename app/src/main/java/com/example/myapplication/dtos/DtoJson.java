@@ -2,9 +2,10 @@ package com.example.myapplication.dtos;
 
 import com.example.myapplication.adapterholders.CustomItem;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class DtoJson {
+public class DtoJson implements Serializable {
 
     private String name;
     private Long total;
@@ -12,14 +13,6 @@ public class DtoJson {
     private String date;
     private List<CustomItem> itemList;
     private List<CustomItem> otherItemsList;
-
-    public List<CustomItem> getOtherItemsList() {
-        return otherItemsList;
-    }
-
-    public void setOtherItemsList(List<CustomItem> otherItemsList) {
-        this.otherItemsList = otherItemsList;
-    }
 
     public String getName() {
         return name;
@@ -61,6 +54,25 @@ public class DtoJson {
         this.itemList = itemList;
     }
 
+    public List<CustomItem> getOtherItemsList() {
+        return otherItemsList;
+    }
+
+    public void setOtherItemsList(List<CustomItem> otherItemsList) {
+        this.otherItemsList = otherItemsList;
+    }
+
+    public DtoJson() {
+
+    }
+    public DtoJson(String name, Long total, String createddtm, String date, List<CustomItem> itemList, List<CustomItem> otherItemsList) {
+        this.name = name;
+        this.total = total;
+        this.createddtm = createddtm;
+        this.date = date;
+        this.itemList = itemList;
+        this.otherItemsList = otherItemsList;
+    }
 
     @Override
     public String toString() {
@@ -73,4 +85,6 @@ public class DtoJson {
                 ", otherItemsList=" + otherItemsList +
                 '}';
     }
+
+
 }

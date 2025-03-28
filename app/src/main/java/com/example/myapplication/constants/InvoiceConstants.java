@@ -11,12 +11,10 @@ public class InvoiceConstants {
             "rkurbetti30@gmail.com",
             "sumeetkurbetti04@gmail.com",
             "rohitbackup47@gmail.com",
-            "rohitbackup0001@gmail.com",
-            "nitiningole1996@gmail.com"
+            "rohitbackup0001@gmail.com"
     };
     public static final String EMPLOYER_NAME = "Gajanan Coldrink House";
     public static Map<String, Integer> ITEM_PRICE_MAP = new HashMap<>();
-
 
 
 
@@ -25,6 +23,7 @@ public class InvoiceConstants {
         Map<String, Integer> priceMap = new HashMap<>();
 
         priceMap.put("KOKAM", InvoiceConstants.KOKAM_RATE);
+        priceMap.put("LEMON", InvoiceConstants.LEMON_RATE);
         priceMap.put("ORANGE", InvoiceConstants.ORANGE_RATE);
         priceMap.put("L. ORANGE", InvoiceConstants.LIMBU_ORANGE_RATE);
         priceMap.put("L. LEMON", InvoiceConstants.LIMBU_LEMON_RATE);
@@ -44,6 +43,10 @@ public class InvoiceConstants {
         priceMap.put("TAAK", InvoiceConstants.TAAK_RATE);
         priceMap.put("KULFI", InvoiceConstants.KULFI_RATE);
         priceMap.put("BTRSCH", InvoiceConstants.BTRSCH_RATE);
+        priceMap.put("VANILLA", InvoiceConstants.VANILLA_RATE);
+        priceMap.put("MANGO", InvoiceConstants.MANGO_RATE);
+        priceMap.put("PISTA", InvoiceConstants.PISTA_RATE);
+        priceMap.put("STRWBRY", InvoiceConstants.STRWBRY_RATE);
 
 
         ITEM_PRICE_MAP = Collections.unmodifiableMap(priceMap);
@@ -70,7 +73,11 @@ public class InvoiceConstants {
     private static final int TAAK_RATE = 10;
     private static final int KULFI_RATE = 20;
     private static final int BTRSCH_RATE = 20;
-
+    private static final int LEMON_RATE = 20;
+    private static final int VANILLA_RATE = 20;
+    private static final int MANGO_RATE = 20;
+    private static final int PISTA_RATE = 20;
+    private static final int STRWBRY_RATE = 20;
 
 
 

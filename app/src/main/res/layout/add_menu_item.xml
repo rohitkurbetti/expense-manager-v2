@@ -2,14 +2,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:layout_margin="20dp"
     >
 
 
     <EditText
+        android:inputType="text"
         android:id="@+id/addItemEditText"
         android:hint="Item name"
+        android:maxLength="15"
         android:layout_marginVertical="10dp"
         android:layout_marginHorizontal="20dp"
         android:layout_width="match_parent"
@@ -17,6 +19,7 @@
     </EditText>
 
     <EditText
+        android:visibility="gone"
         android:id="@+id/etItemPrice"
         android:hint="Item price"
         android:layout_marginVertical="10dp"

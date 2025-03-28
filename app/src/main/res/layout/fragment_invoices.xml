@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="1dp"
+        android:background="@drawable/border"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/calendar"
+            />
+
+        <EditText
+            android:id="@+id/edtFilterDate"
+            android:layout_weight=".5"
+            android:layout_width="0dp"
+            android:padding="12dp"
+            android:gravity="center"
+            android:layout_margin="8dp"
+            android:focusable="false"
+            android:layout_height="wrap_content"
+            android:hint="Set Date (YYYY-MM-DD)" />
+
+
+        <Button
+            android:id="@+id/resetFilterBtn"
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:text="Reset"
+            />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_marginHorizontal="8dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_weight="1"
+            android:id="@+id/totalRecordsTextView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Total records: "
+            />
+
+        <TextView
+            android:id="@+id/totalAmountTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Total: "
+            />
+
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ListView
+            android:id="@+id/listView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:visibility="gone"
+            android:id="@+id/noSqliteDataImageView"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@drawable/attention_exclamation_point_notice_notice_attention_web_svgrepo_com"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:visibility="gone"
+            android:id="@+id/noSqliteDataTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="No data found"
+            app:layout_constraintEnd_toEndOf="@+id/noSqliteDataImageView"
+            app:layout_constraintStart_toStartOf="@+id/noSqliteDataImageView"
+            app:layout_constraintTop_toBottomOf="@+id/noSqliteDataImageView" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</LinearLayout>

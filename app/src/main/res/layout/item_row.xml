@@ -9,10 +9,12 @@
     android:paddingBottom="6dp">
 
     <TextView
+        android:textStyle="bold"
         android:id="@+id/textView"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:textSize="14sp"
         android:text="" />
 
     <com.google.android.material.slider.Slider
@@ -24,6 +26,7 @@
         />
 
     <TextView
+        android:textStyle="bold"
         android:id="@+id/valueTextView"
         android:layout_width="50dp"
         android:gravity="center_horizontal"
@@ -32,5 +35,5 @@
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
         android:text="0"
-        android:textSize="18dp" />
+        android:textSize="16sp" />
 </LinearLayout>

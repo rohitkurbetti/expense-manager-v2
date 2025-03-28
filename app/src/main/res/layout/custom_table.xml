@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
+    android:id="@+id/aaa"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+
     <RelativeLayout
+        android:layout_marginVertical="10dp"
+        android:layout_marginHorizontal="10dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
@@ -12,10 +16,34 @@
             android:id="@+id/checkbox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
             android:layout_marginRight="20dp"
+            android:layout_alignParentRight="true"
             android:layout_marginTop="10dp"
             android:text="Other" />
+
+        <ImageView
+            android:id="@+id/icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_alignBottom="@+id/selectDateLink"
+            android:layout_alignTop="@+id/selectDateLink"
+            android:src="@drawable/calendar" />
+
+        <TextView
+            android:paddingTop="5dp"
+            android:id="@+id/selectDateLink"
+            android:clickable="true"
+            android:textStyle="bold"
+            android:textColor="#2196F3"
+            android:text="select date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="20dp"
+            android:layout_alignBaseline="@+id/checkbox"
+            android:layout_marginLeft="40dp"
+            android:layout_marginTop="10dp"
+            />
 
     </RelativeLayout>
     <ScrollView
@@ -28,6 +56,7 @@
             android:orientation="vertical"
             >
             <TextView
+                android:visibility="gone"
                 android:id="@+id/textView"
                 android:layout_gravity="center_horizontal"
                 android:layout_width="match_parent"
@@ -37,7 +66,9 @@
                 android:layout_marginHorizontal="20dp">
             </TextView>
 
-            <TextView
+            <!-- Nested ListView (Initially hidden) -->
+
+            <!--<TextView
                 android:id="@+id/otherTextView"
                 android:layout_gravity="center_horizontal"
                 android:layout_width="match_parent"
@@ -45,7 +76,36 @@
                 android:padding="10dp"
                 android:layout_marginTop="10dp"
                 android:layout_marginHorizontal="20dp">
-            </TextView>
+            </TextView>-->
+
+            <ListView
+                android:id="@+id/nestedListView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginVertical="10dp" />
+
+            <TextView
+                android:id="@+id/bannerOtherItems"
+                android:visibility="gone"
+                android:textSize="20sp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Other items"
+                android:textStyle="bold|italic"
+                android:padding="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginHorizontal="20dp"
+                />
+
+
+            <!-- Nested ListView (Initially hidden) -->
+            <ListView
+                android:id="@+id/otherListView"
+                android:layout_marginVertical="10dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
 
         </LinearLayout>

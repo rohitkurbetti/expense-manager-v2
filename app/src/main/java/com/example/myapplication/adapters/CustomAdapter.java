@@ -23,10 +23,12 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
 
     private Context context;
     private List<CustomItem> itemList;
+    private TextView tvSelectiveTotalText;
 
-    public CustomAdapter(Context context, List<CustomItem> itemList) {
+    public CustomAdapter(Context context, List<CustomItem> itemList, TextView tvSelectiveTotalText) {
         this.context = context;
         this.itemList = itemList;
+        this.tvSelectiveTotalText = tvSelectiveTotalText;
     }
 
     public CustomAdapter(List<CustomItem> itemList) {
@@ -79,6 +81,16 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             itemList.get(position).setAmount(amount);
             itemList.get(position).setName(item.getName());
             itemList.get(position).setChecked(item.isChecked());
+
+            if(itemList.get(position).getAmount()>0) {
+                tvSelectiveTotalText.setVisibility(View.VISIBLE);
+                tvSelectiveTotalText.setText("Selected item: \n" + itemList.get(position).getName() + " : \u20B9" + itemList.get(position).getAmount());
+            } else {
+                tvSelectiveTotalText.setVisibility(View.GONE);
+                tvSelectiveTotalText.setText(null);
+            }
+
+
         });
     }
 

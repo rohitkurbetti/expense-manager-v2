@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="5dp">
+
+    <!-- Transparent Background Bar -->
+    <View
+        android:id="@+id/backgroundBar"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="#80FFFFFF"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true" />
+
+    <!-- Filled Bar -->
+    <View
+        android:id="@+id/filledBar"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:background="#B328CE2F"
+        android:layout_alignParentStart="true" />
+
+    <!-- TextView for Expense -->
+    <TextView
+        android:textStyle="bold"
+        android:id="@+id/expenseText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="10dp"
+        android:text="Expense"
+        android:textColor="@android:color/black"
+        android:textSize="16sp" />
+</RelativeLayout>

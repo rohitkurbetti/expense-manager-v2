@@ -10,6 +10,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        app:titleTextColor="@color/common_google_signin_btn_text_dark_default"
         android:background="?attr/colorPrimary"
         app:title="Invoice Manager" />
 
@@ -21,6 +22,20 @@
         android:layout_marginBottom="80dp"
         android:layout_marginTop="15dp"/>
 
+
+    <TextView
+        android:visibility="gone"
+        android:id="@+id/tvSelectiveTotalText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:text="Selective total text"
+        android:layout_marginBottom="24dp"
+        android:layout_marginLeft="16dp"
+        android:textColor="@color/colorPrimary"
+        android:textSize="15sp"
+        />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"

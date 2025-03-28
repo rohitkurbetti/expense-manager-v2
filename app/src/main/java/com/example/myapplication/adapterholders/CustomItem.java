@@ -1,7 +1,5 @@
 package com.example.myapplication.adapterholders;
 
-import androidx.annotation.NonNull;
-
 import java.io.Serializable;
 
 public class CustomItem implements Serializable {
@@ -10,6 +8,10 @@ public class CustomItem implements Serializable {
     private boolean checked;
     private float sliderValue;
     private int amount;
+
+    public CustomItem() {
+
+    }
 
     public CustomItem(String name, boolean checked, float sliderValue) {
         this.name = name;

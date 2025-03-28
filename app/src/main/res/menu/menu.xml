@@ -2,12 +2,31 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+
+    <item
+        android:id="@+id/action_expense_manager"
+        android:orderInCategory="100"
+        android:icon="@drawable/price_tag_svgrepo_com__1_"
+        app:showAsAction="always"
+        android:title="Expense Manager"
+        android:tooltipText="Open Expense Manager"
+        />
+
     <item
         android:id="@+id/action_backup_via"
         android:orderInCategory="100"
         android:title="@string/action_option1"
         app:showAsAction="never"
         />
+
+    <item
+        android:id="@+id/action_restore"
+        android:orderInCategory="100"
+        android:title="Restore"
+        app:showAsAction="never"
+        />
+
+
     <item
         android:id="@+id/action_delete_cloud_date"
         android:orderInCategory="100"
@@ -30,10 +49,59 @@
 
 
 
-    <item
+    <!--<item
         android:id="@+id/action_add_item"
         android:orderInCategory="100"
         android:title="Add Item"
+        app:showAsAction="never"
+        />-->
+
+    <item
+        android:id="@+id/action_delete_item"
+        android:orderInCategory="100"
+        android:title="Add / Remove Item"
+        app:showAsAction="never"
+        />
+
+    <item
+        android:id="@+id/action_fetch_cloud_data"
+        android:orderInCategory="100"
+        android:title="Get Sales Summary"
+        app:showAsAction="never"
+        />
+
+    <item
+        android:id="@+id/resetItemCsv"
+        android:orderInCategory="100"
+        android:title="Reset Item Csv"
+        app:showAsAction="never"
+        />
+
+    <item
+        android:id="@+id/deleteSqliteData"
+        android:orderInCategory="100"
+        android:title="Delete App Data"
+        app:showAsAction="never"
+        />
+
+    <item
+        android:id="@+id/toggle_cloud_store"
+        android:orderInCategory="100"
+        android:icon="@drawable/cloud_computing_nodata"
+        app:showAsAction="always"
+        />
+
+    <item
+        android:id="@+id/config"
+        android:title="Configuration"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        />
+
+    <item
+        android:id="@+id/sqliteData"
+        android:title="Sqlite Data"
+        android:orderInCategory="100"
         app:showAsAction="never"
         />
 

@@ -43,7 +43,7 @@
         android:orientation="horizontal">
 
         <Spinner
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:padding="10dp"
@@ -51,18 +51,18 @@
             android:id="@+id/spinnerBucket">
         </Spinner>
 
-        <ImageButton
+        <ImageView
             android:drawableStart="@drawable/ic_document"
             android:layout_gravity="end|center_vertical"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
             android:gravity="center_vertical"
-            android:src="@drawable/ic_delete"
+            android:src="@drawable/baseline_delete_forever_24"
             android:id="@+id/btnDelSpinnerItem"
             >
 
-    </ImageButton>
+    </ImageView>
     </LinearLayout>
 
 

@@ -251,7 +251,7 @@ public class DetailActivity extends AppCompatActivity {
             NotificationHelper.createNotificationChannel(DetailActivity.this);
             // Build the notification
             Notification.Builder builder = new Notification.Builder(DetailActivity.this, NotificationHelper.CHANNEL_ID)
-                    .setSmallIcon(R.drawable.baseline_3d_rotation_24)
+                    .setSmallIcon(R.drawable.baseline_circle_24)
                     .setContentTitle("Invoice Generated")
                     .setContentText(pdfFile.getName())
                     .setContentIntent(pendingIntent)

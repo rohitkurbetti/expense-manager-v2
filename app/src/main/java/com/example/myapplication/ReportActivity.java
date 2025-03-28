@@ -191,20 +191,26 @@ public class ReportActivity extends AppCompatActivity {
 
 //                    int total = 0;
                     Cursor cursor = dbHelper.getPeriodRecords(startDateFormatted,endDateFormatted);
-                    double itemVal=0.0d;
+
                     Map<String, Integer> map = new HashMap<>();
                     if(cursor.getCount()>0){
                         while(cursor.moveToNext()){
+                            double itemVal=0.0d;
                             String jsonItemList = cursor.getString(1);
                             total += cursor.getInt(2);
                             List<CustomItem> itemList = getParserJsonList(jsonItemList);
                             for (CustomItem customItem : itemList) {
-                                itemVal += Double.valueOf(customItem.getSliderValue());
+                                if(map.containsKey(customItem.getName())) {
+                                    itemVal = map.get(customItem.getName()) + (int) customItem.getSliderValue();
+                                } else {
+                                    itemVal = (int) customItem.getSliderValue();
+                                }
                                 map.put(customItem.getName(), (int) itemVal);
+                                itemVal = 0.0d;
                             }
                         }
                     }
-
+                        System.err.println("map: "+map);
                         AlertDialog.Builder builder1 = new AlertDialog.Builder(ReportActivity.this);
                         builder1.setCancelable(false);
                         builder1.setTitle("Color or B&W pdf ? ");
@@ -212,12 +218,14 @@ public class ReportActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 generateReportPdf(startDateFormatted,endDateFormatted, map, total, true);
+                                total = 0;
                             }
                         });
                         builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 generateReportPdf(startDateFormatted,endDateFormatted, map, total, false);
+                                total = 0;
                             }
                         });
 
@@ -363,6 +371,7 @@ public class ReportActivity extends AppCompatActivity {
                 for (CustomItem customItem : itemList) {
                     itemVal += Double.valueOf(customItem.getSliderValue());
                     map.put(customItem.getName(), (int) itemVal);
+                    itemVal = 0.0d;
                 }
             }
         }
@@ -375,12 +384,14 @@ public class ReportActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 generateReportPdf(oldDateVal,newDateVal, map, total, true);
+                total = 0;
             }
         });
         builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 generateReportPdf(oldDateVal,newDateVal, map, total, false);
+                total = 0;
             }
         });
 
@@ -559,9 +570,12 @@ public class ReportActivity extends AppCompatActivity {
 
         JsonObject jsonObject = (new JsonParser()).parse(jsonItemList).getAsJsonObject();
         JsonArray listArr = jsonObject.getAsJsonArray("itemList");
+        JsonArray listOtherArr = jsonObject.getAsJsonArray("otherItemsList");
         Gson gson = new Gson();
         Type listType = new TypeToken<List<CustomItem>>() {}.getType();
         List<CustomItem> itemList = gson.fromJson(listArr, listType);
+        List<CustomItem> otherItemList = gson.fromJson(listOtherArr, listType);
+        itemList.addAll(otherItemList);
         return itemList;
     }
 

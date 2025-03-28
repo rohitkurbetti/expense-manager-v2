@@ -21,6 +21,8 @@ import java.util.Locale;
 
 public class SharedPrefActivity extends AppCompatActivity {
     private static final String SHARED_PREFS_FILE = "my_shared_prefs";
+    private SharedPreferences sharedPreferences;
+    private static final String FIRST_LAUNCH_KEY = "isFirstLaunch";
 
     private RecyclerView recyclerView;
     private Button saveBtn;
@@ -33,7 +35,7 @@ public class SharedPrefActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         saveBtn = findViewById(R.id.saveBtn);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
 
         List<SharedPrefItem> itemList = new ArrayList<>();
         List<CustomItem> itemList1 = new ArrayList<>();
@@ -97,6 +99,8 @@ public class SharedPrefActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 saveSharedPrefs(itemList, adapter);
+                markFirstLaunchDone();
+
             }
         });
 
@@ -117,6 +121,11 @@ public class SharedPrefActivity extends AppCompatActivity {
 //        });
     }
 
+    private void markFirstLaunchDone() {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(FIRST_LAUNCH_KEY, false);
+        editor.apply();
+    }
     private void saveSharedPrefs(List<SharedPrefItem> itemList, SharedPrefAdapter adapter) {
 
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);

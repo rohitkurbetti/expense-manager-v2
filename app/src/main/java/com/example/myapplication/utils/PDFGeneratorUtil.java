@@ -188,7 +188,7 @@ public class PDFGeneratorUtil {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private static String getFormattedDateTime(String date) {
-        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS");
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
         LocalDateTime dateTime = LocalDateTime.parse(date, inputFormatter);
         String formattedDate = dateTime.format(outputFormatter);

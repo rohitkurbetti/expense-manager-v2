@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".CloudSummary">
+
+    <LinearLayout
+        android:id="@+id/spinnerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_margin="10dp"
+        app:layout_constraintBottom_toTopOf="@+id/recyclerview"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/recyclerview"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:textSize="18sp"
+            android:layout_margin="10dp"
+            android:layout_gravity="center_vertical"
+            android:gravity="center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Year : "
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/yearSpinner"
+            android:textAlignment="gravity"
+            android:layout_gravity="center_vertical"
+            android:gravity="center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:spinnerMode="dropdown"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:textAlignment="center"
+            android:id="@+id/yearTotal"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="--"
+        />
+
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerLayout" />
+
+    <ImageView
+        android:visibility="gone"
+        android:id="@+id/noDataCloudImageView"
+        android:layout_width="242dp"
+        android:layout_height="250dp"
+        android:src="@drawable/no_data_svgrepo_com"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/recyclerview"
+        app:layout_constraintTop_toTopOf="@+id/recyclerview" />
+
+    <TextView
+        android:id="@+id/noDataCloudTextView"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No data found on cloud"
+        android:textColor="#BE5BA1DB"
+        app:layout_constraintBottom_toBottomOf="@+id/noDataCloudImageView"
+        app:layout_constraintEnd_toEndOf="@+id/noDataCloudImageView"
+        app:layout_constraintStart_toStartOf="@+id/noDataCloudImageView"
+        app:layout_constraintTop_toTopOf="@+id/noDataCloudImageView" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
