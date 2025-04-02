@@ -20,17 +20,11 @@ public class TestActivity extends AppCompatActivity {
         setContentView(R.layout.activity_test);
 
 
-        ListView listView = findViewById(R.id.listView);
+//        ListView listView = findViewById(R.id.listView);
 
-        // Example data
-        List<Expense> expenses = new ArrayList<>();
-        expenses.add(new Expense(250));
-        expenses.add(new Expense(500));
-        expenses.add(new Expense(1000));
-        expenses.add(new Expense(750));
 
-        ExpenseAdapter adapter = new ExpenseAdapter(this, expenses);
-        listView.setAdapter(adapter);
+//        ExpenseAdapter adapter = new ExpenseAdapter(this, expenses);
+//        listView.setAdapter(adapter);
 
 
     }

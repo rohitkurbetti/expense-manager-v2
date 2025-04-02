@@ -2,8 +2,10 @@ package com.example.myapplication.fragments;
 
 import android.app.DatePickerDialog;
 import android.app.MediaRouteButton;
+import android.app.ProgressDialog;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,8 +13,10 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,11 +38,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class InvoicesFragment extends Fragment {
 
     private static final String INR_SYMBOL = "₹";
     private EditText edtFilterDate;
+    private ProgressDialog progressDialog;
     private TextView totalAmountTextView;
     private TextView totalRecordsTextView;
     private ListView listView;
@@ -47,6 +55,9 @@ public class InvoicesFragment extends Fragment {
     private DatabaseHelper db;
     private ImageView noSqliteDataImageView;
     private TextView noSqliteDataTextView;
+    private ImageView deleteBtn;
+    private LinearLayout selectionOverlay;
+    public static TextView itemSelectedTxt;
 
     @Nullable
     @Override
@@ -54,6 +65,7 @@ public class InvoicesFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_invoices, container, false);
 
         db = new DatabaseHelper(view.getContext());
+        progressDialog = new ProgressDialog(getContext());
         listView = view.findViewById(R.id.listView);
         edtFilterDate = view.findViewById(R.id.edtFilterDate);
         Button resetFilterBtn = view.findViewById(R.id.resetFilterBtn);
@@ -61,6 +73,9 @@ public class InvoicesFragment extends Fragment {
         totalAmountTextView = view.findViewById(R.id.totalAmountTextView);
         noSqliteDataImageView = view.findViewById(R.id.noSqliteDataImageView);
         noSqliteDataTextView = view.findViewById(R.id.noSqliteDataTextView);
+        deleteBtn = view.findViewById(R.id.deleteBtn);
+        selectionOverlay = view.findViewById(R.id.selectionOverlay);
+        itemSelectedTxt = view.findViewById(R.id.itemSelectedTxt);
         invoiceList = new ArrayList<>();
         filteredList = new ArrayList<>();
 
@@ -73,11 +88,50 @@ public class InvoicesFragment extends Fragment {
         edtFilterDate.setOnClickListener(v -> showDateTimeDialog());
         resetFilterBtn.setOnClickListener(v -> resetFilters());
         filteredList.addAll(invoiceList);
-        adapter = new InvoiceAdapter(view.getContext(), filteredList);
+        adapter = new InvoiceAdapter(view.getContext(), filteredList, selectionOverlay);
         listView.setAdapter(adapter);
 
+        deleteBtn.setOnClickListener(v -> {
+            try {
+                deleteSelectedInvoicesById();
+                selectionOverlay.setVisibility(View.GONE);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         return view;
+    }
+
+    private void deleteSelectedInvoicesById() throws IOException {
+
+        IntStream invIdStream = invoiceList.stream().filter(Invoice::getChecked).mapToInt(Invoice::getInvoiceId);
+        Set<Integer> invIds = invIdStream.boxed().collect(Collectors.toSet());
+
+        db.deleteInvoicesbyIds(invIds);
+
+        db.deleteFirestoreInvoicesbyIds(invoiceList,progressDialog);
+        getAllInvoicesFromInDb();
+        resetAllInvoiceCheckBoxes();
+        if(!invoiceList.isEmpty()) {
+            filteredList.clear();
+            filteredList.addAll(invoiceList);
+        }
+        adapter.notifyDataSetChanged();
+
+
+    }
+
+    private void resetAllInvoiceCheckBoxes() {
+        invoiceList.stream().map(invoice ->
+        {
+            invoice.setChecked(false);
+            return invoice;
+        });
+//        List<Invoice> checkedList = invoiceList.stream().collect(Collectors.toList());
+//        Log.d(">>>", checkedList.toString());
+        selectionOverlay.setVisibility(View.GONE);
+
     }
 
     private void resetFilters() {
@@ -171,12 +225,13 @@ public class InvoicesFragment extends Fragment {
             if(totalSumOptional.isPresent()) {
                 totalSum = totalSumOptional.getAsInt();
             }
-
             totalAmountTextView.setText("Total: "+INR_SYMBOL+totalSum);
         } else {
             listView.setVisibility(View.GONE);
             noSqliteDataImageView.setVisibility(View.VISIBLE);
             noSqliteDataTextView.setVisibility(View.VISIBLE);
+            totalRecordsTextView.setText("Total Records: "+cursor.getCount());
+            totalAmountTextView.setText("Total: "+INR_SYMBOL+"0");
         }
     }
 }

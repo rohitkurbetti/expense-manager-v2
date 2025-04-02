@@ -12,6 +12,7 @@ public class Invoice {
     private String createdDateTime;
     private String createdDate;
     private Map<String, Integer> itemSaleMap;
+    private Boolean isChecked = false;
 
     public Invoice(int invoiceId, String itemListJson, long total, String createdDateTime, String createdDate, Map<String, Integer> itemSaleMap) {
         this.invoiceId = invoiceId;
@@ -93,6 +94,15 @@ public class Invoice {
                 ", createdDateTime='" + createdDateTime + '\'' +
                 ", createdDate='" + createdDate + '\'' +
                 ", itemSaleMap=" + itemSaleMap +
+                ", isChecked=" + isChecked +
                 '}';
+    }
+
+    public Boolean getChecked() {
+        return isChecked;
+    }
+
+    public void setChecked(Boolean checked) {
+        isChecked = checked;
     }
 }

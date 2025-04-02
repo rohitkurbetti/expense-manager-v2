@@ -5,31 +5,36 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.myapplication.R;
+import com.example.myapplication.fragments.ExpensesFragment;
 
 import java.util.List;
 
 public class ExpenseAdapter extends BaseAdapter {
     private Context context;
-    private List<Expense> expenses;
-    private int maxExpense; // The maximum expense value for percentage calculation
+    private List<Expense> expenseList;
+    private LinearLayout selectionOverlayFragExp;
 
-    public ExpenseAdapter(Context context, List<Expense> expenses) {
+    public ExpenseAdapter(Context context, List<Expense> expenseList, LinearLayout selectionOverlayFragExp) {
         this.context = context;
-        this.expenses = expenses;
-        this.maxExpense = calculateMaxExpense(expenses);
+        this.expenseList = expenseList;
+        this.selectionOverlayFragExp = selectionOverlayFragExp;
     }
+
 
     @Override
     public int getCount() {
-        return expenses.size();
+        return expenseList.size();
     }
 
     @Override
     public Object getItem(int position) {
-        return expenses.get(position);
+        return expenseList.get(position);
     }
 
     @Override
@@ -40,35 +45,60 @@ public class ExpenseAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(R.layout.list_item, parent, false);
+            convertView = LayoutInflater.from(context).inflate(R.layout.list_item_expense, parent, false);
         }
 
-        Expense expense = expenses.get(position);
+        TextView txtExpenseId = convertView.findViewById(R.id.txtExpenseId);
+        TextView txtExpPart = convertView.findViewById(R.id.txtExpPart);
+        TextView txtExpAmount = convertView.findViewById(R.id.txtExpAmount);
+        TextView txtExpCreatedDateTime = convertView.findViewById(R.id.txtExpCreatedDateTime);
+//        TextView txtSales = convertView.findViewById(R.id.txtSales);
+        TextView txtExpBalance = convertView.findViewById(R.id.txtExpBalance);
+        ImageView expDetailsBtn = convertView.findViewById(R.id.expDetailsBtn);
+        CheckBox checkBoxExpenseId = convertView.findViewById(R.id.checkBoxExpenseId);
 
-        TextView expenseText = convertView.findViewById(R.id.expenseText);
-        View filledBar = convertView.findViewById(R.id.filledBar);
+        Expense expense = expenseList.get(position);
 
-        // Set expense text
-        expenseText.setText("INR " + expense.getValue());
+        txtExpenseId.setText("Expense ID: " + expense.getId());
+        txtExpPart.setText(expense.getExpensePart());
+        txtExpAmount.setText("Total expenses: \u20B9" + expense.getExpenseAmount());
+        txtExpCreatedDateTime.setText("Created: " + expense.getExpenseDateTime());
+//        txtExpCreatedDate.setText("Date: " + expense.getExpenseDate());
+        txtExpBalance.setText("Balance: \u20B9" + expense.getBalance());
 
-        // Calculate percentage fill
-        int percentage = (int) ((expense.getValue() / (float) maxExpense) * 100);
 
-        // Set width dynamically
-        ViewGroup.LayoutParams params = filledBar.getLayoutParams();
-        params.width = (int) (parent.getWidth() * (percentage / 100.0));
-        filledBar.setLayoutParams(params);
+//        expDetailsBtn.setOnClickListener(v -> expenseDetails(itemSaleMap));
+
+        checkBoxExpenseId.setChecked(expense.getChecked());
+
+        checkBoxExpenseId.setOnCheckedChangeListener((v, isChecked) -> {
+            if(isChecked) {
+                expense.setChecked(true);
+            } else {
+                expense.setChecked(false);
+            }
+
+            boolean isCheckedAny = expenseList.stream().anyMatch(Expense::getChecked);
+
+            if(isCheckedAny) {
+                //show delete button
+                selectionOverlayFragExp.setVisibility(View.VISIBLE);
+            } else {
+                //hide delete button
+                selectionOverlayFragExp.setVisibility(View.GONE);
+            }
+
+            long checkedCExpensesCount = expenseList.stream().filter(Expense::getChecked).count();
+            ExpensesFragment.itemSelectedTxtFragExp.setText(checkedCExpensesCount+" Items selected");
+        });
+
+
 
         return convertView;
     }
 
-    private int calculateMaxExpense(List<Expense> expenses) {
-        int max = 0;
-        for (Expense expense : expenses) {
-            if (expense.getValue() > max) {
-                max = expense.getValue();
-            }
-        }
-        return max;
+    public void updateList(List<Expense> filteredExpenseList) {
+        expenseList = filteredExpenseList;
+        notifyDataSetChanged();
     }
 }

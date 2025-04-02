@@ -9,13 +9,16 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Build;
 import android.os.Environment;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
+import com.example.myapplication.dtos.Invoice;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
@@ -25,16 +28,24 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -89,6 +100,50 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if(sharedPreferences.getBoolean("toggleCloudStore", false)) {
                 putDataFireStore(context, values, newRowId, dtoJson, itemListJson);
             }
+
+            long newTodaysSales = getTodaysSales(dtoJson.getDate());
+
+            //update expenses entry in sqlite db
+            try (ExpenseDbHelper expenseDbHelper = new ExpenseDbHelper(context)) {
+                Cursor res = expenseDbHelper.getExpenseByDate(values.getAsString("created_date"));
+
+                if(res.getCount()>0) {
+                    while (res.moveToNext()) {
+                        int expId = res.getInt(0);
+                        String expPart = res.getString(1);
+                        int expAmount = res.getInt(2);
+                        String expDateTime = res.getString(3);
+                        String expDate = res.getString(4);
+
+                        LocalDate yesterDay = LocalDate.now();
+                        if(StringUtils.isNotEmpty(expDate)) {
+                            LocalDate dateParsed = LocalDate.parse(expDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                            yesterDay = dateParsed.minusDays(1);
+                        }
+                        long yesterdaysBalance = expenseDbHelper.getYesterdaysBalance(String.valueOf(yesterDay));
+
+                        int yBalance = (int) yesterdaysBalance;
+                        int newBalance = (int) ((newTodaysSales + yBalance) - expAmount);
+
+                        //update the expense entry in EXPENSES table in db
+                        Expense expense = new Expense(expId, expPart, expAmount, expDateTime, expDate, yBalance, (int) newTodaysSales, newBalance);
+
+                        long updateRes = expenseDbHelper.updateExpenseAfterNewInvoices(expense);
+
+                        if(updateRes>0) {
+                            Toast.makeText(context, "Expenses updated", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, "Expenses updation failed", Toast.LENGTH_SHORT).show();
+                        }
+
+
+                    }
+                }
+
+
+
+            }
+
         } else {
             Toast.makeText(context, "Invoice insertion failed", Toast.LENGTH_LONG).show();
         }
@@ -292,4 +347,125 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         return todaysSales;
     }
+
+    public void deleteInvoicesbyIds(Set<Integer> invoiceIds) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        if (invoiceIds == null || invoiceIds.isEmpty()) {
+            return; // No IDs to delete
+        }
+
+        // Create a placeholder string for IN clause (?, ?, ?)
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < invoiceIds.size(); i++) {
+            placeholders.append(i == 0 ? "?" : ", ?");
+        }
+
+        // Build the final SQL query
+        String sql = "DELETE FROM invoices WHERE invoice_id IN (" + placeholders + ")";
+        Log.d(">>",invoiceIds+" "+sql);
+        // Convert Set<Integer> to String[] for binding arguments
+        String[] args = invoiceIds.stream()
+                .map(String::valueOf)
+                .toArray(String[]::new);
+
+        // Execute the delete query
+        db.execSQL(sql, args);
+        db.close();
+    }
+
+    public void deleteFirestoreInvoicesbyIds(List<Invoice> invoices, ProgressDialog progressDialog) {
+
+        progressDialog.setMessage("Deleting from cloud database");
+        progressDialog.show();
+        List<Invoice> selInvs = invoices.stream().filter(Invoice::getChecked).collect(Collectors.toList());
+
+        if(!selInvs.isEmpty()) {
+
+            selInvs.forEach(invoice -> {
+                String date = invoice.getCreatedDate();
+                String dateTime = invoice.getCreatedDateTime();
+
+                String formattedOnlyYear = formatOnlyYear(date);  // 2025
+                String formattedMonthYear = formatMonthYear(date);  // Mar-2025
+                String formattedHHmmss = formatHHmmSS(dateTime);  // 13_16_30
+
+
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("invoices");
+                databaseReference.child("/"+ formattedOnlyYear +"/"+ formattedMonthYear +"/"+ date +"/"+ formattedHHmmss +"/").removeValue()
+                    .addOnSuccessListener(unused -> {
+                        progressDialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> {
+                        progressDialog.dismiss();
+                    });
+                });
+
+        } else {
+            progressDialog.dismiss();
+        }
+
+    }
+
+    private String formatHHmmSS(String dateTime) {
+
+        try {
+            if (StringUtils.isNotEmpty(dateTime)) {
+                String hms = dateTime.substring(11);
+
+                // Define input date format
+                SimpleDateFormat inputFormat = new SimpleDateFormat("HH:mm:ss", Locale.US);
+                // Define output format as "MMM-yyyy"
+                SimpleDateFormat outputFormat = new SimpleDateFormat("HH_mm_ss", Locale.US);
+
+                // Parse the input date
+                Date parsedDate = inputFormat.parse(hms);
+
+                // Format and return the result
+                return outputFormat.format(parsedDate);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "Invalid Date";
+        }
+        return "";
+    }
+
+    private String formatOnlyYear(String inputDate) {
+        try {
+            // Define input date format
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            // Define output format as "MMM-yyyy"
+            SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy", Locale.US);
+
+            // Parse the input date
+            Date parsedDate = inputFormat.parse(inputDate);
+
+            // Format and return the result
+            return outputFormat.format(parsedDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "Invalid Date";
+        }
+    }
+
+    private String formatMonthYear(String inputDate) {
+        try {
+            // Define input date format
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            // Define output format as "MMM-yyyy"
+            SimpleDateFormat outputFormat = new SimpleDateFormat("MMM-yyyy", Locale.US);
+
+            // Parse the input date
+            Date parsedDate = inputFormat.parse(inputDate);
+
+            // Format and return the result
+            return outputFormat.format(parsedDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "Invalid Date";
+        }
+    }
+
+
 }

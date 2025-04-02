@@ -42,7 +42,20 @@ public class SharedPrefActivity extends AppCompatActivity {
         itemList1 = (List<CustomItem>) getIntent().getSerializableExtra("sharedPrefList");
 
         itemList1.forEach(item -> {
-            itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),20)));
+            if(item.getName().equalsIgnoreCase("L. Lemon") || item.getName().equalsIgnoreCase("L. Orange") ||
+                    item.getName().equalsIgnoreCase("Stwbry Soda") || item.getName().equalsIgnoreCase("S Sarbat")) {
+                itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),25)));
+            } else if (item.getName().equalsIgnoreCase("Lassi_F")) {
+                itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),40)));
+            } else if (item.getName().equalsIgnoreCase("Water_H")) {
+                itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),10)));
+            } else if (item.getName().equalsIgnoreCase("Mng_Lssi_H")) {
+                itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),30)));
+            } else if (item.getName().equalsIgnoreCase("Mng_Lssi_F")) {
+                itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),60)));
+            } else {
+                itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),20)));
+            }
         });
 
 //        SharedPrefItem sharedPrefItem = new SharedPrefItem("Kokam", sharedPreferences.getInt("Kokam".toUpperCase(),20));

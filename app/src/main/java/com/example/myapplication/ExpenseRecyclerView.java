@@ -3,9 +3,12 @@ package com.example.myapplication;
 public class ExpenseRecyclerView {
     private Integer id;
     private String expensePart;
-    private String expenseDate;
     private Integer expenseAmount;
+    private String expenseDateTime;
+    private String expenseDate;
+    private Integer yesterdaysBalance;
     private Integer sales;
+    private Integer balance;
 
     public ExpenseRecyclerView(int id, String part, int expAmount, String expDate, int sales) {
         this.id=id;
@@ -14,6 +17,31 @@ public class ExpenseRecyclerView {
         this.expenseDate=expDate;
         this.sales=sales;
 
+    }
+
+    public ExpenseRecyclerView(Integer id, String expensePart, Integer expenseAmount, String expenseDateTime, String expenseDate, Integer yesterdaysBalance, Integer sales, Integer balance) {
+        this.id = id;
+        this.expensePart = expensePart;
+        this.expenseAmount = expenseAmount;
+        this.expenseDateTime = expenseDateTime;
+        this.expenseDate = expenseDate;
+        this.yesterdaysBalance = yesterdaysBalance;
+        this.sales = sales;
+        this.balance = balance;
+    }
+
+    @Override
+    public String toString() {
+        return "ExpenseRecyclerView{" +
+                "id=" + id +
+                ", expensePart='" + expensePart + '\'' +
+                ", expenseAmount=" + expenseAmount +
+                ", expenseDateTime='" + expenseDateTime + '\'' +
+                ", expenseDate='" + expenseDate + '\'' +
+                ", yesterdaysBalance=" + yesterdaysBalance +
+                ", sales=" + sales +
+                ", balance=" + balance +
+                '}';
     }
 
     public Integer getId() {

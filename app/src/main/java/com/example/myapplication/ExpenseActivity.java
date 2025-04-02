@@ -2,35 +2,55 @@ package com.example.myapplication;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.database.ExpenseDbHelper;
+import com.example.myapplication.dtos.ExpenseParticularsDto;
+import com.google.gson.Gson;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class ExpenseActivity extends AppCompatActivity {
 
@@ -42,6 +62,7 @@ public class ExpenseActivity extends AppCompatActivity {
     private RecyclerView expenseRecyclerView;
     private ExpenseRecyclerViewAdapter expenseRecyclerViewAdapter;
     public static List<ExpenseRecyclerView> expenseItems = new ArrayList<>();
+    private ArrayAdapter<String> spinnerAdapter;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -79,6 +100,116 @@ public class ExpenseActivity extends AppCompatActivity {
         // Set up the SaveExpense button click listener
         btnSaveExpense.setOnClickListener(view -> saveExpense());
 
+        etExpenseParticulars.setOnLongClickListener(v -> {
+            if(StringUtils.isBlank(etExpenseParticulars.getText())) {
+                return false;
+            }
+            View view = getLayoutInflater().inflate(R.layout.other_entity, null, false);
+
+            Button btnAddToBucket = view.findViewById(R.id.btnAddToBucket);
+            ImageView btnDelSpinnerItem = view.findViewById(R.id.btnDelSpinnerItem);
+            Spinner spinnerBucket = view.findViewById(R.id.spinnerBucket);
+            EditText etItemName = view.findViewById(R.id.etItemName);
+            EditText etItemValue = view.findViewById(R.id.etItemValue);
+
+            List<String> items = new ArrayList<>();
+
+            spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+            spinnerBucket.setAdapter(spinnerAdapter);
+
+            Map<String, Integer> itemMap = new HashMap<>();
+
+            btnAddToBucket.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String itemName = etItemName.getText().toString();
+                    String itemValue = etItemValue.getText().toString();
+                    if(itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()){
+                        addItemToSpinner(itemName, itemValue);
+                        showCustomToast("Item " + itemName + " added");
+//                        animateBackground(spinnerBucket , false);
+
+                    }
+
+
+
+                }
+
+
+
+
+                private void addItemToSpinner(String itemName, String itemValue) {
+                    items.clear();
+                    itemMap.put(itemName, Integer.valueOf(itemValue));
+                    itemMap.forEach((k,v) -> {
+                        items.add(k+" = "+v);
+                    });
+                    etItemName.setText("");
+                    etItemValue.setText("");
+                    spinnerAdapter.notifyDataSetChanged();
+                }
+            });
+
+
+            btnDelSpinnerItem.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    deleteSelectedItem();
+                }
+
+                private void deleteSelectedItem() {
+                    int selectedItemPosition = spinnerBucket.getSelectedItemPosition();
+                    String itemName = (String) spinnerBucket.getItemAtPosition(selectedItemPosition);
+
+                    if (selectedItemPosition != AdapterView.INVALID_POSITION) {
+                        items.remove(selectedItemPosition);
+                        itemMap.remove(itemName.split(" = ")[0]);
+                        spinnerAdapter.notifyDataSetChanged();
+                        showCustomToast("Item "+ itemName.split(" = ")[0] +" removed");
+
+                    }
+                }
+            });
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Expense Particulars");
+            builder.setCancelable(false);
+            builder.setIcon(R.drawable.expense);
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                @RequiresApi(api = Build.VERSION_CODES.O)
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    ExpenseParticularsDto expenseParticularsDto = new ExpenseParticularsDto();
+                    expenseParticularsDto.setExpenseParticulars(String.valueOf(etExpenseParticulars.getText()));
+                    expenseParticularsDto.setExpensePriceMap(itemMap);
+
+                    Gson gson = new Gson();
+                    String jsonString = gson.toJson(expenseParticularsDto);
+
+                    System.err.println("MAP json >>> "+jsonString);
+
+
+                }
+            });
+
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+
+            builder.setView(view);
+
+            AlertDialog dialog = builder.create();
+            dialog.show();
+
+            return true;
+        });
+
         etExpenseDateTime.setOnClickListener(v -> showDateTimeDialog());
         getAllExpenses(expenseRecyclerViewAdapter);
 
@@ -99,6 +230,28 @@ public class ExpenseActivity extends AppCompatActivity {
         }
 
 
+    }
+
+    private void showCustomToast(String message) {
+        // Inflate the custom layout
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast,
+                (ViewGroup) findViewById(R.id.custom_toast_container));
+
+        // Set the text for the toast
+        TextView toastText = layout.findViewById(R.id.toast_text);
+        toastText.setText(message);
+
+        // Optionally update the icon if needed
+        ImageView toastIcon = layout.findViewById(R.id.toast_icon);
+//                 toastIcon.setImageResource(R.drawable.baseline_face_24);
+
+        // Create and display the toast
+        Toast toast = new Toast(getApplicationContext());
+        toast.setDuration(Toast.LENGTH_SHORT);
+        toast.setView(layout);
+        toast.setGravity(Gravity.TOP|Gravity.CENTER,toast.getXOffset(), toast.getYOffset());
+        toast.show();
     }
 
 
@@ -142,6 +295,7 @@ public class ExpenseActivity extends AppCompatActivity {
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
         );
+        datePickerDialog.getDatePicker().setMaxDate(calendar.getTimeInMillis());
 
         datePickerDialog.show();
     }
@@ -211,6 +365,44 @@ public class ExpenseActivity extends AppCompatActivity {
 //                balanceRow = cursor.getInt(7);
             }
             isInserted = expenseDbHelper.insertExpense(idRow, particularsRow, amount, expDateTimeRow, expDateRow,yesterdaysBalance, todaysSales, balance);
+
+            List<String> dates = getDatesFromNextDayToToday(date);
+
+            dates.forEach(currDate -> {
+
+                Cursor res = checkIfExpenseExists(currDate);
+                if(res!=null && res.getCount()>0) {
+                    while(res.moveToNext()) {
+                        int expId = res.getInt(0);
+                        int expAmount = res.getInt(2);
+                        String expDate = res.getString(4);
+
+
+                        LocalDate yesterDays = LocalDate.now();
+                        if(StringUtils.isNotEmpty(currDate)) {
+                            LocalDate dateParsed = LocalDate.parse(currDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                            yesterDays = dateParsed.minusDays(1);
+                        }
+
+                        long yesterdaysBalanceUpdated = getYesterdaysBalance(yesterDays);
+                        long todaysSalesUpdated = getTodaysSales(currDate);
+                        long balanceUpdated = (yesterdaysBalanceUpdated + todaysSalesUpdated) - ((long) expAmount);
+
+                        long rowsAffected = expenseDbHelper.updateExpenseYesterdaysBalanceAndSales(expId, expDate, yesterdaysBalanceUpdated, todaysSalesUpdated, balanceUpdated);
+
+                        // Check if the update was successful
+                        if (rowsAffected > 0) {
+                            Toast.makeText(this, "Record updated successfully "+expId, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this, expId+" Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
+                        }
+
+                    }
+                }
+            });
+
+
+
         } else {
             isInserted = expenseDbHelper.insertExpense(null, particulars, amount, datetime, date,yesterdaysBalance, todaysSales, balance);
         }
@@ -231,6 +423,21 @@ public class ExpenseActivity extends AppCompatActivity {
         }
         getAllExpenses(expenseRecyclerViewAdapter);
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private List<String> getDatesFromNextDayToToday(String inputDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate startDate = LocalDate.parse(inputDate, formatter).plusDays(1); // Start from next day
+        LocalDate today = LocalDate.now();
+
+        List<String> dateList = new ArrayList<>();
+        while (!startDate.isAfter(today)) {
+            dateList.add(startDate.format(formatter));
+            startDate = startDate.plusDays(1);
+        }
+
+        return dateList;
     }
 
     private Cursor checkIfExpenseExists(String date) {

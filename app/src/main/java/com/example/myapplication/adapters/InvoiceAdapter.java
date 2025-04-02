@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -17,6 +18,7 @@ import com.example.myapplication.R;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.dtos.Invoice;
 import com.example.myapplication.dtos.Item;
+import com.example.myapplication.fragments.InvoicesFragment;
 
 
 import java.util.ArrayList;
@@ -27,12 +29,13 @@ public class InvoiceAdapter extends BaseAdapter {
     private Context context;
     private List<Invoice> invoiceList;
     private LayoutInflater inflater;
+    private final LinearLayout selectionOverlay;
 
-    public InvoiceAdapter(Context context, List<Invoice> invoiceList) {
+    public InvoiceAdapter(Context context, List<Invoice> invoiceList, LinearLayout selectionOverlay) {
         this.context = context;
         this.invoiceList = invoiceList;
         this.inflater = LayoutInflater.from(context);
-        System.err.println("inv: "+invoiceList );
+        this.selectionOverlay = selectionOverlay;
     }
 
     @Override
@@ -62,6 +65,7 @@ public class InvoiceAdapter extends BaseAdapter {
         TextView txtCreatedDateTime = convertView.findViewById(R.id.txtCreatedDateTime);
         TextView txtCreatedDate = convertView.findViewById(R.id.txtCreatedDate);
         ImageView invoiceDetailsBtn = convertView.findViewById(R.id.invoiceDetailsBtn);
+        CheckBox checkBoxInvoiceId = convertView.findViewById(R.id.checkBoxInvoiceId);
 
         Invoice invoice = invoiceList.get(position);
 
@@ -74,6 +78,29 @@ public class InvoiceAdapter extends BaseAdapter {
         Map<String, Integer> itemSaleMap = invoice.getItemSaleMap();
 
         invoiceDetailsBtn.setOnClickListener(v -> invoiceDetails(itemSaleMap));
+
+        checkBoxInvoiceId.setChecked(invoice.getChecked());
+
+        checkBoxInvoiceId.setOnCheckedChangeListener((v, isChecked) -> {
+            if(isChecked) {
+                invoice.setChecked(true);
+            } else {
+                invoice.setChecked(false);
+            }
+
+            boolean isCheckedAny = invoiceList.stream().anyMatch(Invoice::getChecked);
+
+            if(isCheckedAny) {
+                //show delete button
+                selectionOverlay.setVisibility(View.VISIBLE);
+            } else {
+                //hide delete button
+                selectionOverlay.setVisibility(View.GONE);
+            }
+
+            long checkedCInvoicesCount = invoiceList.stream().filter(Invoice::getChecked).count();
+            InvoicesFragment.itemSelectedTxt.setText(checkedCInvoicesCount+" Items selected");
+        });
 
         return convertView;
     }

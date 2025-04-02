@@ -50,6 +50,7 @@
 
     <LinearLayout
         android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -75,14 +76,49 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <LinearLayout
+            android:id="@+id/selectionOverlay"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:gravity="center_vertical"
+            android:background="@drawable/border_dark"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/itemSelectedTxt"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_marginHorizontal="8dp"
+                android:paddingStart="8dp"
+                android:textStyle="bold"
+                android:layout_height="wrap_content"
+                android:text="Items selected"
+                android:textColor="?android:colorBackground"
+                />
+
+            <ImageView
+                android:id="@+id/deleteBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:padding="8dp"
+                android:src="@drawable/delete_dryicons"
+                android:tooltipText="Delete Invoice(s)"
+                 />
+
+        </LinearLayout>
+
         <ListView
             android:id="@+id/listView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_margin="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@+id/selectionOverlay" />
 
         <ImageView
             android:visibility="gone"
@@ -101,7 +137,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:text="No data found"
+            android:text="No data available"
             app:layout_constraintEnd_toEndOf="@+id/noSqliteDataImageView"
             app:layout_constraintStart_toStartOf="@+id/noSqliteDataImageView"
             app:layout_constraintTop_toBottomOf="@+id/noSqliteDataImageView" />

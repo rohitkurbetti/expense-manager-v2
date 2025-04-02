@@ -7,13 +7,16 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 
 import android.content.ContentValues;
+import android.util.Log;
 
 import com.example.myapplication.ExpenseActivity;
 import com.example.myapplication.ExpenseRecyclerView;
 import com.example.myapplication.ExpenseRecyclerViewAdapter;
+import com.example.myapplication.adapters.Expense;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class ExpenseDbHelper extends SQLiteOpenHelper {
 
@@ -107,6 +110,16 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         return null;
     }
 
+    public boolean checkIfExpenseExistsFlag(String date) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM "+ TABLE_EXPENSES + " where "+COLUMN_DATE+"=?";
+        Cursor cursor = db.rawQuery(query, new String[]{date});
+        if(cursor.getCount()>0) {
+            return true;
+        }
+        return false;
+    }
+
     public List<ExpenseRecyclerView> getAllExpenses(ExpenseRecyclerViewAdapter expenseRecyclerViewAdapter) {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT * FROM "+ TABLE_EXPENSES + " order by id desc";
@@ -134,6 +147,81 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
             expenseRecyclerViewAdapter.notifyDataSetChanged();
         }
         return expenseRecyclerViewList;
+    }
+
+    public Cursor getAllExpenses() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by id desc ", null);
+    }
+
+
+    public void deleteExpensesByIds(Set<Integer> expenseIds) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        if (expenseIds == null || expenseIds.isEmpty()) {
+            return; // No IDs to delete
+        }
+
+        // Create a placeholder string for IN clause (?, ?, ?)
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < expenseIds.size(); i++) {
+            placeholders.append(i == 0 ? "?" : ", ?");
+        }
+
+        // Build the final SQL query
+        String sql = "DELETE FROM "+ TABLE_EXPENSES +" WHERE id IN (" + placeholders + ")";
+        Log.d(">>",expenseIds+" "+sql);
+        // Convert Set<Integer> to String[] for binding arguments
+        String[] args = expenseIds.stream()
+                .map(String::valueOf)
+                .toArray(String[]::new);
+
+        // Execute the delete query
+        db.execSQL(sql, args);
+        db.close();
+    }
+
+    public Cursor getExpenseByDate(String expDate) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_EXPENSES + " where expenseDate = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{expDate});
+        return cursor;
+    }
+
+    public long updateExpenseAfterNewInvoices(Expense expense) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        long result = 0;
+        int id = expense.getId();
+        values.put(COLUMN_PARTICULARS, expense.getExpensePart());
+        values.put(COLUMN_AMOUNT, expense.getExpenseAmount());
+        values.put(COLUMN_DATETIME, expense.getExpenseDateTime());
+        values.put(COLUMN_DATE, expense.getExpenseDate());
+        values.put(COLUMN_YESTERDAYS_BALANCE, expense.getYesterdaysBalance());
+        values.put(COLUMN_SALES, expense.getSales());
+        values.put(COLUMN_BALANCE, expense.getBalance());
+        values.put(COLUMN_ID, id);
+            result = db.update(TABLE_EXPENSES, values,"id=?",new String[] {String.valueOf(id)});
+        db.close();
+        return result;
+    }
+
+    public long updateExpenseYesterdaysBalanceAndSales(int expId, String expDate, long yesterdaysBalanceUpdated, long todaysSalesUpdated, long balanceUpdated) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        long rowsAffected = 0;
+
+        values.put("yesterdaysBalance", yesterdaysBalanceUpdated);
+        values.put("sales", todaysSalesUpdated);
+        values.put("balance", balanceUpdated);
+
+        // Update query
+        rowsAffected = db.update(TABLE_EXPENSES, values, "id = ? AND expenseDate = ?",
+                new String[]{String.valueOf(expId), expDate});
+
+
+
+        return rowsAffected;
     }
 }
 
