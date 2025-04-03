@@ -223,5 +223,24 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
         return rowsAffected;
     }
+
+    public String getMaxDateFromExpenses() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT MAX("+ COLUMN_DATE +") FROM " + TABLE_EXPENSES;
+        Cursor cursor = db.rawQuery(query, null);
+        String maxDate = null;
+        if(cursor.getCount()>0) {
+            while (cursor.moveToNext()) {
+                 maxDate = cursor.getString(0);
+            }
+        }
+        return maxDate;
+    }
+
+    public void deleteAllData() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_EXPENSES, null, null);
+        db.close();
+    }
 }
 

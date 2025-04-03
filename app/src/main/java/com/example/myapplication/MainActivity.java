@@ -67,6 +67,7 @@ import com.example.myapplication.adapters.NestedOtherListAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.adapterholders.CustomItem;
+import com.example.myapplication.database.ExpenseDbHelper;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
 import com.example.myapplication.utils.PDFGeneratorUtil;
@@ -147,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
     private CustomAdapter adapter;
     public static List<CustomItem> itemList;
     DatabaseHelper dbHelper;
+    ExpenseDbHelper expenseDbHelper;
     private ArrayAdapter<String> spinnerAdapter;
     private Map<String,Integer> otherItemsMap;
     ProgressDialog pd;
@@ -188,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         dbHelper = new DatabaseHelper(getApplicationContext());
+        expenseDbHelper = new ExpenseDbHelper(getApplicationContext());
         pd = new ProgressDialog(this);
         recyclerView = findViewById(R.id.recyclerView);
         TextView tvSelectiveTotalText = findViewById(R.id.tvSelectiveTotalText);
@@ -1414,7 +1417,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (id == R.id.deleteSqliteData) {
             dbHelper.deleteAllData();
-            Toast.makeText(this, "All app data deleted", Toast.LENGTH_SHORT).show();
+            expenseDbHelper.deleteAllData();
+            Toast.makeText(this, "All app data deleted", Toast.LENGTH_LONG).show();
             return true;
         }
 

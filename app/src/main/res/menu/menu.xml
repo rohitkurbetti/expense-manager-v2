@@ -87,6 +87,7 @@
     <item
         android:id="@+id/toggle_cloud_store"
         android:orderInCategory="100"
+        android:title="Cloud Storage On/Off"
         android:icon="@drawable/cloud_computing_nodata"
         app:showAsAction="always"
         />
@@ -102,7 +103,8 @@
         android:id="@+id/sqliteData"
         android:title="Sqlite Data"
         android:orderInCategory="100"
-        app:showAsAction="never"
+        android:icon="@drawable/database_svgrepo_com__1_"
+        app:showAsAction="always"
         />
 
 </menu>

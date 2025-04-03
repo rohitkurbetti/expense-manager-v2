@@ -63,6 +63,7 @@ public class ExpenseActivity extends AppCompatActivity {
     private ExpenseRecyclerViewAdapter expenseRecyclerViewAdapter;
     public static List<ExpenseRecyclerView> expenseItems = new ArrayList<>();
     private ArrayAdapter<String> spinnerAdapter;
+    private String expParticularsJson = null;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -190,7 +191,7 @@ public class ExpenseActivity extends AppCompatActivity {
                     String jsonString = gson.toJson(expenseParticularsDto);
 
                     System.err.println("MAP json >>> "+jsonString);
-
+                    expParticularsJson = jsonString;
 
                 }
             });
@@ -303,6 +304,11 @@ public class ExpenseActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void saveExpense() {
         String particulars = etExpenseParticulars.getText().toString().trim();
+
+        if(StringUtils.isNotBlank(expParticularsJson)) {
+            particulars = expParticularsJson;
+        }
+
         String amountStr = etExpenseAmount.getText().toString().trim();
         String datetime = etExpenseDateTime.getText().toString().trim();
 
@@ -366,46 +372,48 @@ public class ExpenseActivity extends AppCompatActivity {
             }
             isInserted = expenseDbHelper.insertExpense(idRow, particularsRow, amount, expDateTimeRow, expDateRow,yesterdaysBalance, todaysSales, balance);
 
-            List<String> dates = getDatesFromNextDayToToday(date);
 
-            dates.forEach(currDate -> {
-
-                Cursor res = checkIfExpenseExists(currDate);
-                if(res!=null && res.getCount()>0) {
-                    while(res.moveToNext()) {
-                        int expId = res.getInt(0);
-                        int expAmount = res.getInt(2);
-                        String expDate = res.getString(4);
-
-
-                        LocalDate yesterDays = LocalDate.now();
-                        if(StringUtils.isNotEmpty(currDate)) {
-                            LocalDate dateParsed = LocalDate.parse(currDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                            yesterDays = dateParsed.minusDays(1);
-                        }
-
-                        long yesterdaysBalanceUpdated = getYesterdaysBalance(yesterDays);
-                        long todaysSalesUpdated = getTodaysSales(currDate);
-                        long balanceUpdated = (yesterdaysBalanceUpdated + todaysSalesUpdated) - ((long) expAmount);
-
-                        long rowsAffected = expenseDbHelper.updateExpenseYesterdaysBalanceAndSales(expId, expDate, yesterdaysBalanceUpdated, todaysSalesUpdated, balanceUpdated);
-
-                        // Check if the update was successful
-                        if (rowsAffected > 0) {
-                            Toast.makeText(this, "Record updated successfully "+expId, Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(this, expId+" Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
-                        }
-
-                    }
-                }
-            });
 
 
 
         } else {
             isInserted = expenseDbHelper.insertExpense(null, particulars, amount, datetime, date,yesterdaysBalance, todaysSales, balance);
         }
+
+        List<String> dates = getDatesFromNextDayToToday(date);
+
+        dates.forEach(currDate -> {
+
+            Cursor res = checkIfExpenseExists(currDate);
+            if(res!=null && res.getCount()>0) {
+                while(res.moveToNext()) {
+                    int expId = res.getInt(0);
+                    int expAmount = res.getInt(2);
+                    String expDate = res.getString(4);
+
+
+                    LocalDate yesterDays = LocalDate.now();
+                    if(StringUtils.isNotEmpty(currDate)) {
+                        LocalDate dateParsed = LocalDate.parse(currDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                        yesterDays = dateParsed.minusDays(1);
+                    }
+
+                    long yesterdaysBalanceUpdated = getYesterdaysBalance(yesterDays);
+                    long todaysSalesUpdated = getTodaysSales(currDate);
+                    long balanceUpdated = (yesterdaysBalanceUpdated + todaysSalesUpdated) - ((long) expAmount);
+
+                    long rowsAffected = expenseDbHelper.updateExpenseYesterdaysBalanceAndSales(expId, expDate, yesterdaysBalanceUpdated, todaysSalesUpdated, balanceUpdated);
+
+                    // Check if the update was successful
+                    if (rowsAffected > 0) {
+                        Toast.makeText(this, "Record updated successfully "+expId, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, expId+" Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
+                    }
+
+                }
+            }
+        });
 
         if (isInserted) {
             Toast.makeText(this, "Expense saved successfully!", Toast.LENGTH_SHORT).show();
@@ -429,7 +437,10 @@ public class ExpenseActivity extends AppCompatActivity {
     private List<String> getDatesFromNextDayToToday(String inputDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(inputDate, formatter).plusDays(1); // Start from next day
-        LocalDate today = LocalDate.now();
+
+        String maxDate = expenseDbHelper.getMaxDateFromExpenses();
+        LocalDate today = LocalDate.parse(maxDate, formatter);
+
 
         List<String> dateList = new ArrayList<>();
         while (!startDate.isAfter(today)) {

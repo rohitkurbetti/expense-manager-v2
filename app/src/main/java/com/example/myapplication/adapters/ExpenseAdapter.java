@@ -11,7 +11,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.myapplication.R;
+import com.example.myapplication.dtos.ExpenseParticularsDto;
 import com.example.myapplication.fragments.ExpensesFragment;
+import com.example.myapplication.utils.JsonUtils;
+import com.google.gson.Gson;
 
 import java.util.List;
 
@@ -60,7 +63,18 @@ public class ExpenseAdapter extends BaseAdapter {
         Expense expense = expenseList.get(position);
 
         txtExpenseId.setText("Expense ID: " + expense.getId());
-        txtExpPart.setText(expense.getExpensePart());
+
+        String expPartJson = expense.getExpensePart();
+
+        if (JsonUtils.isValidJson(expPartJson)) {
+            Gson gson = new Gson();
+            ExpenseParticularsDto expenseParticularsDto = gson.fromJson(expPartJson, ExpenseParticularsDto.class);
+            txtExpPart.setText(expenseParticularsDto.getExpenseParticulars());
+        } else {
+            txtExpPart.setText(expense.getExpensePart());
+        }
+
+
         txtExpAmount.setText("Total expenses: \u20B9" + expense.getExpenseAmount());
         txtExpCreatedDateTime.setText("Created: " + expense.getExpenseDateTime());
 //        txtExpCreatedDate.setText("Date: " + expense.getExpenseDate());
