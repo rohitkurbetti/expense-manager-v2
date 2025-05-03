@@ -6,4 +6,4 @@
     android:padding="8dp"
     android:gravity="center_vertical"
     android:textColor="#FFFFFF"
-    android:background="#6200EE" />
+    android:background="?colorPrimary" />

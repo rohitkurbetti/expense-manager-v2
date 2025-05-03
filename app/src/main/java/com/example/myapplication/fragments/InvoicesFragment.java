@@ -58,6 +58,8 @@ public class InvoicesFragment extends Fragment {
     private ImageView deleteBtn;
     private LinearLayout selectionOverlay;
     public static TextView itemSelectedTxt;
+    private ImageView invoiceFilterButton;
+    private LinearLayout invoicesFilterHeader;
 
     @Nullable
     @Override
@@ -76,6 +78,12 @@ public class InvoicesFragment extends Fragment {
         deleteBtn = view.findViewById(R.id.deleteBtn);
         selectionOverlay = view.findViewById(R.id.selectionOverlay);
         itemSelectedTxt = view.findViewById(R.id.itemSelectedTxt);
+        invoiceFilterButton = view.findViewById(R.id.invoiceFilterButton);
+        invoicesFilterHeader = view.findViewById(R.id.invoicesFilterHeader);
+
+        invoiceFilterButton.setOnClickListener(v -> toggleInvoicesFilter());
+        invoicesFilterHeader.setOnClickListener(v -> toggleInvoicesFilter());
+
         invoiceList = new ArrayList<>();
         filteredList = new ArrayList<>();
 
@@ -101,6 +109,18 @@ public class InvoicesFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void toggleInvoicesFilter() {
+        int visibilityGone = View.GONE;
+        if(visibilityGone == invoicesFilterHeader.getVisibility()) {
+            invoicesFilterHeader.setVisibility(View.VISIBLE);
+            invoiceFilterButton.setVisibility(visibilityGone);
+        } else {
+            invoicesFilterHeader.setVisibility(visibilityGone);
+            invoiceFilterButton.setVisibility(View.VISIBLE);
+        }
+
     }
 
     private void deleteSelectedInvoicesById() throws IOException {

@@ -11,9 +11,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.myapplication.adapters.SharedPrefAdapter;
 import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.adapterholders.SharedPrefItem;
+import com.example.myapplication.adapters.SharedPrefAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +43,8 @@ public class SharedPrefActivity extends AppCompatActivity {
 
         itemList1.forEach(item -> {
             if(item.getName().equalsIgnoreCase("L. Lemon") || item.getName().equalsIgnoreCase("L. Orange") ||
-                    item.getName().equalsIgnoreCase("Stwbry Soda") || item.getName().equalsIgnoreCase("S Sarbat")) {
+                    item.getName().equalsIgnoreCase("Stwbry Soda") || item.getName().equalsIgnoreCase("Pineapple Soda") ||
+                    item.getName().equalsIgnoreCase("S Sarbat")) {
                 itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),25)));
             } else if (item.getName().equalsIgnoreCase("Lassi_F")) {
                 itemList.add(new SharedPrefItem(item.getName(), sharedPreferences.getInt(item.getName().toUpperCase(),40)));
@@ -116,15 +117,6 @@ public class SharedPrefActivity extends AppCompatActivity {
 
             }
         });
-
-
-
-
-
-
-
-
-
 
 
 //        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {

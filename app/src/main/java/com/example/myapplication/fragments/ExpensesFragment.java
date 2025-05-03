@@ -58,6 +58,8 @@ public class ExpensesFragment extends Fragment {
     private ImageView deleteBtnFragExp;
     private LinearLayout selectionOverlayFragExp;
     public static TextView itemSelectedTxtFragExp;
+    private LinearLayout expensesFilterHeader;
+    private ImageView expensesFilterButton;
 
 
     @Nullable
@@ -77,6 +79,11 @@ public class ExpensesFragment extends Fragment {
         deleteBtnFragExp = view.findViewById(R.id.deleteBtnFragExp);
         selectionOverlayFragExp = view.findViewById(R.id.selectionOverlayFragExp);
         itemSelectedTxtFragExp = view.findViewById(R.id.itemSelectedTxtFragExp);
+        expensesFilterButton = view.findViewById(R.id.expensesFilterButton);
+        expensesFilterHeader = view.findViewById(R.id.expensesFilterHeader);
+
+        expensesFilterButton.setOnClickListener(v -> toggleExpensesFilter());
+        expensesFilterHeader.setOnClickListener(v -> toggleExpensesFilter());
 
 
         expenseList = new ArrayList<>();
@@ -107,13 +114,24 @@ public class ExpensesFragment extends Fragment {
         return view;
     }
 
+    private void toggleExpensesFilter() {
+        int visibilityGone = View.GONE;
+        if(visibilityGone == expensesFilterHeader.getVisibility()) {
+            expensesFilterHeader.setVisibility(View.VISIBLE);
+            expensesFilterButton.setVisibility(visibilityGone);
+        } else {
+            expensesFilterHeader.setVisibility(visibilityGone);
+            expensesFilterButton.setVisibility(View.VISIBLE);
+        }
+    }
+
     private void deleteSelectedExpensesById() {
         IntStream invIdStream = expenseList.stream().filter(Expense::getChecked).mapToInt(Expense::getId);
         Set<Integer> expIds = invIdStream.boxed().collect(Collectors.toSet());
 
         db.deleteExpensesByIds(expIds);
 
-//        db.deleteFirestoreInvoicesbyIds(invoiceList,progressDialog);
+        db.deleteFirestoreExpensesbyIds(expenseList,progressDialog);
         getAllExpensesFromInDb();
         resetAllExpensesCheckBoxes();
         if(!expenseList.isEmpty()) {

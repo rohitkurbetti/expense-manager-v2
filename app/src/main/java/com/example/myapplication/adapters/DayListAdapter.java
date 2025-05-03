@@ -2,6 +2,7 @@ package com.example.myapplication.adapters;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,6 +41,11 @@ public class DayListAdapter extends BaseAdapter {
     private List<Day> nestedItemList;
     private int qty;
 
+    private static final String SHARED_PREFS_FILE = "my_shared_prefs";
+
+    SharedPreferences sharedPreferences;
+
+
     @Override
     public int getCount() {
         return nestedItemList.size();
@@ -58,6 +64,7 @@ public class DayListAdapter extends BaseAdapter {
     public DayListAdapter(Context context, List<Day> nestedItemList) {
         this.context = context;
         this.nestedItemList = nestedItemList;
+        sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -105,7 +112,10 @@ public class DayListAdapter extends BaseAdapter {
                 LocalDate localDate = LocalDate.parse(dayName);
                 String monthYearFmtted = LocalDate.parse(dayName).format(monthYearFormatter);
 
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("invoices");
+                SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+                String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"invoices");
                 databaseReference.child("/"+localDate.getYear()+"/"+monthYearFmtted+"/"+dayName).removeValue()
                         .addOnSuccessListener(unused -> {
                             Toast.makeText(context, "Data deleted successfully", Toast.LENGTH_SHORT).show();

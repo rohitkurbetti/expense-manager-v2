@@ -22,7 +22,6 @@ public class Expense {
         this.sales = sales;
         this.balance = balance;
     }
-
     public Boolean getChecked() {
         return isChecked;
     }

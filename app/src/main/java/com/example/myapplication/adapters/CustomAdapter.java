@@ -15,6 +15,8 @@ import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.R;
 import com.google.android.material.slider.Slider;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -61,6 +63,9 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
         holder.slider.setValue(item.getSliderValue());
         holder.valueTextView.setText(String.valueOf((int)item.getSliderValue()));
 
+        if(StringUtils.containsIgnoreCase(holder.textView.getText(), "Lassi")) {
+            holder.slider.setValueTo(1.00f);
+        }
 
 //        holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
 //            item.setChecked(isChecked);

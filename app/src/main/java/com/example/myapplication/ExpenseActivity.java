@@ -8,10 +8,12 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -33,24 +35,37 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.myapplication.adapterholders.CustomItem;
+import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.database.ExpenseDbHelper;
 import com.example.myapplication.dtos.ExpenseParticularsDto;
+import com.example.myapplication.utils.JsonUtils;
+import com.example.myapplication.utils.Utils;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.gson.Gson;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class ExpenseActivity extends AppCompatActivity {
 
@@ -64,6 +79,8 @@ public class ExpenseActivity extends AppCompatActivity {
     public static List<ExpenseRecyclerView> expenseItems = new ArrayList<>();
     private ArrayAdapter<String> spinnerAdapter;
     private String expParticularsJson = null;
+    private Menu menu;
+
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -99,7 +116,13 @@ public class ExpenseActivity extends AppCompatActivity {
         databaseHelper = new DatabaseHelper(this);
 
         // Set up the SaveExpense button click listener
-        btnSaveExpense.setOnClickListener(view -> saveExpense());
+        btnSaveExpense.setOnClickListener(view -> {
+            try {
+                saveExpense();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         etExpenseParticulars.setOnLongClickListener(v -> {
             if(StringUtils.isBlank(etExpenseParticulars.getText())) {
@@ -131,15 +154,8 @@ public class ExpenseActivity extends AppCompatActivity {
                         addItemToSpinner(itemName, itemValue);
                         showCustomToast("Item " + itemName + " added");
 //                        animateBackground(spinnerBucket , false);
-
                     }
-
-
-
                 }
-
-
-
 
                 private void addItemToSpinner(String itemName, String itemValue) {
                     items.clear();
@@ -192,7 +208,12 @@ public class ExpenseActivity extends AppCompatActivity {
 
                     System.err.println("MAP json >>> "+jsonString);
                     expParticularsJson = jsonString;
+                    AtomicInteger totalExpense = new AtomicInteger();
+                    itemMap.forEach((k,v)->{
+                        totalExpense.addAndGet(v);
+                    });
 
+                    etExpenseAmount.setText(String.valueOf(totalExpense.get()));
                 }
             });
 
@@ -231,6 +252,59 @@ public class ExpenseActivity extends AppCompatActivity {
         }
 
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_section, menu);  // inflate the menu only for this activity
+        this.menu = menu;
+
+        List<Expense> allExpenses = expenseDbHelper.getAllExpenseParsedList();
+
+//        List<Expense> fltrExp = allExpenses.stream().filter(expense -> expense.getYesterdaysBalance()==0).collect(Collectors.toList());
+
+        if(!allExpenses.isEmpty()) {
+            List<LocalDate> missing = findMissingDates(allExpenses);
+
+            if (missing.isEmpty()) {
+                toggleMenuItem(false);
+            } else {
+                toggleMenuItem(true);
+            }
+            Utils.showMissingDatesPopup(this, missing);
+        }
+        return true;
+    }
+
+    private void toggleMenuItem(boolean enable) {
+        if(menu != null) {
+            MenuItem item = menu.findItem(R.id.action_check_missing_expenses);
+            if (item != null) {
+                item.setVisible(enable);
+                item.setIcon(R.drawable.warning);
+//                item.getIcon().setAlpha(enable ? 255 : 100); // Optional: visually fade icon when disabled
+            }
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_check_missing_expenses) {
+
+            List<Expense> missingExpenses = expenseDbHelper.getAllExpenseParsedList();
+
+            if(!missingExpenses.isEmpty()) {
+                List<LocalDate> missing = findMissingDates(missingExpenses);
+                Utils.showMissingDatesPopup(this, missing);
+            }
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void showCustomToast(String message) {
@@ -302,7 +376,7 @@ public class ExpenseActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private void saveExpense() {
+    private void saveExpense() throws IOException {
         String particulars = etExpenseParticulars.getText().toString().trim();
 
         if(StringUtils.isNotBlank(expParticularsJson)) {
@@ -339,9 +413,11 @@ public class ExpenseActivity extends AppCompatActivity {
             etExpenseDateTime.requestFocus();
             return;
         }
-        String date = "";
+        String date;
         if(StringUtils.isNotEmpty(datetime)) {
             date = datetime.substring(0,10);
+        } else {
+            date = "";
         }
         LocalDate yesterDay = LocalDate.now();
         if(StringUtils.isNotEmpty(date)) {
@@ -354,7 +430,7 @@ public class ExpenseActivity extends AppCompatActivity {
         long balance = 0L;
         balance = (yesterdaysBalance + todaysSales) - ((long) amount);
 //        System.out.println("Yesterdays Bal: "+yesterdaysBalance+"\nTodays: "+ todaysSales+"\nBalance: "+balance);
-
+        Expense expense = null;
         Cursor cursor = checkIfExpenseExists(date);
         boolean isInserted = false;
         if(cursor!=null && cursor.getCount()>0) {
@@ -370,14 +446,18 @@ public class ExpenseActivity extends AppCompatActivity {
 //                todaysSalesRow = cursor.getInt(6);
 //                balanceRow = cursor.getInt(7);
             }
-            isInserted = expenseDbHelper.insertExpense(idRow, particularsRow, amount, expDateTimeRow, expDateRow,yesterdaysBalance, todaysSales, balance);
+            isInserted = expenseDbHelper.insertExpense(idRow, particulars, amount, datetime, date,yesterdaysBalance, todaysSales, balance);
 
+            expense = new Expense(idRow, particulars, (int) amount, datetime, date, (int) yesterdaysBalance, (int) todaysSales, (int) balance);
 
 
 
 
         } else {
             isInserted = expenseDbHelper.insertExpense(null, particulars, amount, datetime, date,yesterdaysBalance, todaysSales, balance);
+
+            expense = new Expense(null, particulars, (int) amount, datetime, date, (int) yesterdaysBalance, (int) todaysSales, (int) balance);
+
         }
 
         List<String> dates = getDatesFromNextDayToToday(date);
@@ -388,7 +468,9 @@ public class ExpenseActivity extends AppCompatActivity {
             if(res!=null && res.getCount()>0) {
                 while(res.moveToNext()) {
                     int expId = res.getInt(0);
+                    String expPart = res.getString(1);
                     int expAmount = res.getInt(2);
+                    String expDateTime = res.getString(3);
                     String expDate = res.getString(4);
 
 
@@ -407,6 +489,8 @@ public class ExpenseActivity extends AppCompatActivity {
                     // Check if the update was successful
                     if (rowsAffected > 0) {
                         Toast.makeText(this, "Record updated successfully "+expId, Toast.LENGTH_SHORT).show();
+                        Expense exp = new Expense(expId, expPart, expAmount, expDateTime, expDate, (int) yesterdaysBalanceUpdated, (int) todaysSalesUpdated, (int) balanceUpdated);
+                        saveExpenseOnCloud(this, expDate, exp);
                     } else {
                         Toast.makeText(this, expId+" Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
                     }
@@ -418,6 +502,12 @@ public class ExpenseActivity extends AppCompatActivity {
         if (isInserted) {
             Toast.makeText(this, "Expense saved successfully!", Toast.LENGTH_SHORT).show();
             clearInputs();
+
+            //save expense on cloud
+
+            saveExpenseOnCloud(this, date, expense);
+
+
             Cursor res = expenseDbHelper.getTodaysTotalExpense(String.valueOf(LocalDate.now()));
 
             if(res!=null && res.getCount()>0) {
@@ -426,11 +516,148 @@ public class ExpenseActivity extends AppCompatActivity {
                     textViewBalanceTotal.setText(String.valueOf("\u20B9"+res.getInt(1)));
                 }
             }
+
+            writeAllExpenseContentInTxtFile();
+
         } else {
             Toast.makeText(this, "Failed to save expense. Please try again.", Toast.LENGTH_SHORT).show();
         }
         getAllExpenses(expenseRecyclerViewAdapter);
 
+        List<Expense> missingExpenses = expenseDbHelper.getAllExpenseParsedList();
+
+
+        List<LocalDate> missing = findMissingDates(missingExpenses);
+
+        if(missing.isEmpty()){
+            toggleMenuItem(false);
+        } else {
+            toggleMenuItem(true);
+            Utils.showMissingDatesPopup(this, missing);
+        }
+
+    }
+
+    private void writeAllExpenseContentInTxtFile() throws IOException {
+        List<Expense> expenseList = expenseDbHelper.getAllExpenseParsedList();
+
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+        String filePath = path + File.separator + "ExpensesBackup.csv";
+
+        FileWriter writer = new FileWriter(filePath);
+
+        expenseList.forEach(expense -> {
+
+            int id = expense.getId();
+            String expensePart = expense.getExpensePart();
+            if(JsonUtils.isValidJson(expensePart)) {
+                expensePart = "\""+expensePart+"\"";
+            }
+
+
+            int expenseAmount = expense.getExpenseAmount();
+            String expenseExpenseDateTime = expense.getExpenseDateTime();
+            String expenseDate = expense.getExpenseDate();
+            int expenseYesterdaysBalance = expense.getYesterdaysBalance();
+            int expenseSales = expense.getSales();
+            int expenseBalance = expense.getBalance();
+
+
+            // Construct CSV row
+            String csvRow = id + "," +  expensePart + "," + expenseAmount + "," + expenseExpenseDateTime+ "," + expenseDate+"," + expenseYesterdaysBalance+"," + expenseSales+"," + expenseBalance+ "\n";
+
+            // Write CSV row to file
+            try {
+                writer.append(csvRow);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        });
+
+
+        // Close CSV writer
+        writer.flush();
+        writer.close();
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static void saveExpenseOnCloud(Context context, String date, Expense expense) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+
+        SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
+        DatabaseReference expRef = database.getReference(deviceModel+"/"+"expenses");
+
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        LocalDate localDate = LocalDate.parse(date, dateTimeFormatter);
+
+        boolean todaysDate = true;
+        if(localDate.equals(LocalDate.now())) {
+            todaysDate = true;
+        } else {
+            todaysDate = false;
+        }
+
+        int year = localDate.getYear();
+        Month month = localDate.getMonth();
+        int day = localDate.getDayOfMonth();
+
+        String monthShort = month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH); // e.g., "Dec"
+
+        String sendLocalDate = LocalDate.now().toString();
+//        String sendLocalDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss"));
+
+        // Store user data
+        expRef.child(year+"").child(monthShort+"-"+year).child(todaysDate ==true ? sendLocalDate : localDate+"")
+                .setValue(expense)
+                .addOnSuccessListener(aVoid -> {
+                    // Data stored successfully
+                    Toast.makeText(context, "Expense saved on cloud successfully!", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    // Failed to store data
+                    Toast.makeText(context, "Failed to save expense data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static List<LocalDate> findMissingDates(List<Expense> dateStrings) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        Set<LocalDate> dateSet = new HashSet<>();
+        // Parse strings to LocalDate and store in a set
+        for (Expense dateStr : dateStrings) {
+            dateSet.add(LocalDate.parse(dateStr.getExpenseDate(), formatter));
+        }
+
+        // Find the min and max dates
+        LocalDate minDate = Collections.min(dateSet);
+        LocalDate maxDate = Collections.max(dateSet);
+
+        List<LocalDate> missingDates = new ArrayList<>();
+
+        // Loop through the range and check for missing dates
+        for (LocalDate date = minDate; !date.isAfter(maxDate); date = date.plusDays(1)) {
+            if (!dateSet.contains(date)) {
+
+                LocalDate finalDate = date;
+                boolean isExists = dateStrings.stream().anyMatch(ex -> ex.getExpenseDate().contains(String.valueOf(finalDate)));
+                List<Expense> tempExp = new ArrayList<>();
+                if(isExists) {
+                    tempExp = dateStrings.stream().filter(expense -> expense.getExpenseDate().equalsIgnoreCase(String.valueOf(finalDate)))
+                            .filter(exp -> exp.getYesterdaysBalance()>0).collect(Collectors.toList());
+                    System.err.println(" missing dates >> "+tempExp.size());
+                } else {
+                    missingDates.add(date);
+                    System.err.println(" missing dates. >> "+tempExp.size());
+                }
+            }
+        }
+        return missingDates;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)

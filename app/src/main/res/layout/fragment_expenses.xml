@@ -6,8 +6,32 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/expensesFilterButton"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/calendar"
+            />
+
+        <TextView
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enable / Disable filter"
+            />
+
+    </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/expensesFilterHeader"
+        android:visibility="gone"
         android:orientation="horizontal"
         android:gravity="center"
         android:layout_marginTop="1dp"

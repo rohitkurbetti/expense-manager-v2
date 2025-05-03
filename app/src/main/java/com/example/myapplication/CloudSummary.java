@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -8,7 +10,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -31,13 +32,12 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CloudSummary extends AppCompatActivity {
-    DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("invoices");
+    DatabaseReference databaseReference;
     DatabaseReference usersRef;
     ProgressDialog progressDialog;
     private RecyclerView recyclerView;
@@ -76,10 +76,7 @@ public class CloudSummary extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selectedYear = parent.getItemAtPosition(position).toString();
-
                 fetchFromFirebase(map);
-
-
             }
 
             @Override
@@ -87,10 +84,6 @@ public class CloudSummary extends AppCompatActivity {
                 // Handle no selection
             }
         });
-
-
-
-
     }
 
 
@@ -124,6 +117,11 @@ public class CloudSummary extends AppCompatActivity {
     private void fetchFromFirebase(Map<String, List<DtoJsonEntity>> map) {
         progressDialog.setMessage("Fetching from cloud database");
         progressDialog.show();
+
+        SharedPreferences sharedPreferences = getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
+        databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"invoices");
         databaseReference.addValueEventListener(new ValueEventListener() {
             private String key;
 
@@ -186,7 +184,6 @@ public class CloudSummary extends AppCompatActivity {
                 }
                 int totalYear = monthList.stream().map(month -> month.getMonthTotal()).mapToInt(n -> n.intValue()).sum();
                 yearTotal.setText("Total  \u20B9"+totalYear);
-//                System.err.println("Total year: "+totalYear);
                 // Set the adapter
                 mainAdapter = new MainAdapter(CloudSummary.this,  monthList);
                 recyclerView.setAdapter(mainAdapter);
@@ -198,8 +195,5 @@ public class CloudSummary extends AppCompatActivity {
                 System.err.println("Error: " + databaseError.getMessage());
             }
         });
-
     }
-
-
 }

@@ -43,22 +43,22 @@ public class PDFGeneratorUtil {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public static File generateInvoice(DtoJson dtoJson, long newRowId, Context context) {
-        File pdfFile= null;
+        File pdfFile = null;
         SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
 
         try {
             String pdfPathMain = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
 
-            String pdfPath = pdfPathMain+ File.separator+ InvoiceConstants.EMPLOYER_NAME +File.separator+"invoices";
+            String pdfPath = pdfPathMain + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "invoices";
 
-            if(!Files.exists(Paths.get(pdfPath))){
+            if (!Files.exists(Paths.get(pdfPath))) {
                 new File(pdfPath).mkdirs();
             }
 
             LocalDateTime localDateTime = LocalDateTime.now();
-            String frmtted = localDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String frmtted = localDateTime.format(DateTimeFormatter.ofPattern("ddMMMyy_HHmmss"));
 
-            pdfFile = new File(pdfPath, "invoice_"+frmtted+".pdf");
+            pdfFile = new File(pdfPath, "invoice_" + newRowId + "_" + frmtted + ".pdf");
             PdfWriter writer = new PdfWriter(new FileOutputStream(pdfFile));
             PdfDocument pdfDocument = new PdfDocument(writer);
             Document document = new Document(pdfDocument);
@@ -79,7 +79,7 @@ public class PDFGeneratorUtil {
 
 
             Div div1 = new Div();
-            div1.setMargins(10,5,10,5);
+            div1.setMargins(10, 5, 10, 5);
 
 
             float[] columnWidths = {1, 15};
@@ -98,8 +98,8 @@ public class PDFGeneratorUtil {
 
 
             // Add cells with words
-            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth()/2)).setBorder(Border.NO_BORDER).add(headingTitle));
-            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth()/2)).setBorder(Border.NO_BORDER).add(title));
+            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth() / 2)).setBorder(Border.NO_BORDER).add(headingTitle));
+            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth() / 2)).setBorder(Border.NO_BORDER).add(title));
 
             // Add the table to the document
             document.add(tableTe);
@@ -116,7 +116,7 @@ public class PDFGeneratorUtil {
 
             String name = dtoJson.getName();
 
-            if(name == null){
+            if (name == null) {
                 name = "";
             }
 
@@ -144,7 +144,7 @@ public class PDFGeneratorUtil {
             if (itemList != null) {
                 for (CustomItem item : itemList) {
                     table.addCell(new Cell().add(new Paragraph(item.getName())));
-                    table.addCell(new Cell().add(new Paragraph(String.valueOf(sharedPreferences.getInt(item.getName().toUpperCase(Locale.getDefault()),0)))));
+                    table.addCell(new Cell().add(new Paragraph(String.valueOf(sharedPreferences.getInt(item.getName().toUpperCase(Locale.getDefault()), 0)))));
                     table.addCell(new Cell().add(new Paragraph(String.valueOf((int) item.getSliderValue()))));
                     table.addCell(new Cell().add(new Paragraph(String.valueOf(item.getAmount()))));
                 }
@@ -175,7 +175,6 @@ public class PDFGeneratorUtil {
 //                    .show();
 //
 //
-
 
 
         } catch (IOException e) {

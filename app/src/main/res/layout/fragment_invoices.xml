@@ -9,6 +9,32 @@
 
 
     <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/invoiceFilterButton"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/calendar"
+            />
+
+        <TextView
+            android:id="@+id/filterBtnText"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enable / Disable filter"
+            />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/invoicesFilterHeader"
         android:orientation="horizontal"
         android:gravity="center"
         android:layout_marginTop="1dp"
@@ -76,6 +102,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+
+
         <LinearLayout
             android:id="@+id/selectionOverlay"
             android:visibility="gone"
@@ -141,6 +169,16 @@
             app:layout_constraintEnd_toEndOf="@+id/noSqliteDataImageView"
             app:layout_constraintStart_toStartOf="@+id/noSqliteDataImageView"
             app:layout_constraintTop_toBottomOf="@+id/noSqliteDataImageView" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/circularProgressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            app:layout_constraintBottom_toBottomOf="@+id/noSqliteDataImageView"
+            app:layout_constraintEnd_toEndOf="@+id/noSqliteDataImageView"
+            app:layout_constraintStart_toStartOf="@+id/noSqliteDataImageView"
+            app:layout_constraintTop_toTopOf="@+id/noSqliteDataImageView" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

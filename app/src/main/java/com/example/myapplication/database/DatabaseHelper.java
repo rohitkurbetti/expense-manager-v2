@@ -15,6 +15,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.example.myapplication.ExpenseActivity;
 import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
@@ -52,10 +53,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "invoices.db";
     private static final int DATABASE_VERSION = 1;
     private static final String SHARED_PREFS_FILE = "my_shared_prefs";
-
+    private final Context context;
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.context = context;
     }
 
     @Override
@@ -85,7 +87,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         }
         values.put("total", grandTotal);
-
+        dtoJson.setTotal(grandTotal);
         if(itemListJson.charAt(0)== '"' && itemListJson.charAt(itemListJson.length()-1)=='"') {
             itemListJson = itemListJson.substring(1,itemListJson.length()-1);
         }
@@ -96,10 +98,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         long newRowId = db.insert("invoices", null, values);
         if (newRowId != -1) {
-            SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
-            if(sharedPreferences.getBoolean("toggleCloudStore", false)) {
+//            SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+//            if(sharedPreferences.getBoolean("toggleCloudStore", true)) {
                 putDataFireStore(context, values, newRowId, dtoJson, itemListJson);
-            }
+//            }
 
             long newTodaysSales = getTodaysSales(dtoJson.getDate());
 
@@ -132,6 +134,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
                         if(updateRes>0) {
                             Toast.makeText(context, "Expenses updated", Toast.LENGTH_SHORT).show();
+                            ExpenseActivity.saveExpenseOnCloud(context, expDate, expense);
                         } else {
                             Toast.makeText(context, "Expenses updation failed", Toast.LENGTH_SHORT).show();
                         }
@@ -195,7 +198,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         // Initialize Firebase Database
         FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("invoices");
+
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+        DatabaseReference myRef = database.getReference(deviceModel+"/"+"invoices");
 
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -208,6 +214,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         int min = calendar.get(Calendar.MINUTE);
         int sec = calendar.get(Calendar.SECOND);
 
+        String datTimeStr = dtoJson.getCreateddtm();
+
+        DateTimeFormatter dateTimeStrFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        LocalDateTime ldtmParsed = LocalDateTime.parse(datTimeStr, dateTimeStrFormatter);
+
+        hour = ldtmParsed.getHour();
+        min = ldtmParsed.getMinute();
+        sec = ldtmParsed.getSecond();
 
         boolean todaysDate = true;
         if(localDate.equals(LocalDate.now())) {
@@ -234,7 +249,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         // Store user data
         myRef.child(year+"").child(monthShort+"-"+year).child(todaysDate ==true ? sendLocalDate : localDate+"")
-                .child(todaysDate ==true ? sendLocalDateTime: hour+"_"+min+"_"+sec).setValue(dtoJsonEntity)
+                .child(String.format("%02d",hour)+"_"+String.format("%02d",min)+"_"+String.format("%02d",sec)).setValue(dtoJsonEntity)
                 .addOnSuccessListener(aVoid -> {
                     // Data stored successfully
                     Toast.makeText(context, "Data saved on cloud successfully!", Toast.LENGTH_SHORT).show();
@@ -390,8 +405,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String formattedMonthYear = formatMonthYear(date);  // Mar-2025
                 String formattedHHmmss = formatHHmmSS(dateTime);  // 13_16_30
 
+                SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+                String deviceModel = sharedPreferences.getString("model", Build.MODEL);
 
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("invoices");
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"invoices");
                 databaseReference.child("/"+ formattedOnlyYear +"/"+ formattedMonthYear +"/"+ date +"/"+ formattedHHmmss +"/").removeValue()
                     .addOnSuccessListener(unused -> {
                         progressDialog.dismiss();

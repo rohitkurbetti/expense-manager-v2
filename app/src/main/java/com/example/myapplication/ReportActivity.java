@@ -28,9 +28,10 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
+import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.database.DatabaseHelper;
-import com.example.myapplication.adapterholders.CustomItem;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -56,7 +57,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -75,7 +75,7 @@ import java.util.Map;
 public class ReportActivity extends AppCompatActivity {
     DatabaseHelper dbHelper;
     Button getBtn;
-    TextView tvStartDate,tvEndDate;
+    TextView tvStartDate, tvEndDate;
     private static final String SHARED_PREFS_FILE = "my_shared_prefs";
 
     Color headerColor1 = new DeviceRgb(102, 178, 255); //
@@ -96,7 +96,7 @@ public class ReportActivity extends AppCompatActivity {
         tvEndDate = findViewById(R.id.tvEndDate);
         Spinner spinnerSelectPeriod = findViewById(R.id.selectPeriod);
         pd = new ProgressDialog(this);
-        String[] items = {"select option","Last month", "Last 3 months", "Last 6 months", "Last 1 year", "Custom"};
+        String[] items = {"select option", "Last month", "Last 3 months", "Last 6 months", "Last 1 year", "Custom"};
 
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, items);
@@ -109,7 +109,7 @@ public class ReportActivity extends AppCompatActivity {
         spinnerSelectPeriod.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if(parent.getSelectedItem().equals("Custom")) {
+                if (parent.getSelectedItem().equals("Custom")) {
                     tvStartDate.setVisibility(View.VISIBLE);
                     tvEndDate.setVisibility(View.VISIBLE);
                     tvStartDate.setOnClickListener(new View.OnClickListener() {
@@ -171,94 +171,74 @@ public class ReportActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String selecteditem = (String) spinnerSelectPeriod.getSelectedItem();
-                if(selecteditem.equalsIgnoreCase("Last month")){
+                if (selecteditem.equalsIgnoreCase("Last month")) {
                     processDateRangeGenerateReport(30);
-                } else if (selecteditem.equalsIgnoreCase("Last 3 months")){
+                } else if (selecteditem.equalsIgnoreCase("Last 3 months")) {
                     processDateRangeGenerateReport(90);
-                } else if (selecteditem.equalsIgnoreCase("Last 6 months")){
+                } else if (selecteditem.equalsIgnoreCase("Last 6 months")) {
                     processDateRangeGenerateReport(180);
-                } else if (selecteditem.equalsIgnoreCase("Last 1 year")){
+                } else if (selecteditem.equalsIgnoreCase("Last 1 year")) {
                     processDateRangeGenerateReport(365);
-                } else if (selecteditem.equalsIgnoreCase("Custom")){
+                } else if (selecteditem.equalsIgnoreCase("Custom")) {
 
-                    if(tvStartDate != null && !tvStartDate.getText().equals("Start Date Here")
+                    if (tvStartDate != null && !tvStartDate.getText().equals("Start Date Here")
                             && tvEndDate != null && !tvEndDate.getText().equals("End Date Here")) {
+                        String startDateFormatted = getParsedDate(tvStartDate.getText().toString());
+                        String endDateFormatted = getParsedDate(tvEndDate.getText().toString());
 
+                        //                    int total = 0;
+                        Cursor cursor = dbHelper.getPeriodRecords(startDateFormatted, endDateFormatted);
 
-
-                    String startDateFormatted = getParsedDate(tvStartDate.getText().toString());
-                    String endDateFormatted = getParsedDate(tvEndDate.getText().toString());
-
-//                    int total = 0;
-                    Cursor cursor = dbHelper.getPeriodRecords(startDateFormatted,endDateFormatted);
-
-                    Map<String, Integer> map = new HashMap<>();
-                    if(cursor.getCount()>0){
-                        while(cursor.moveToNext()){
-                            double itemVal=0.0d;
-                            String jsonItemList = cursor.getString(1);
-                            total += cursor.getInt(2);
-                            List<CustomItem> itemList = getParserJsonList(jsonItemList);
-                            for (CustomItem customItem : itemList) {
-                                if(map.containsKey(customItem.getName())) {
-                                    itemVal = map.get(customItem.getName()) + (int) customItem.getSliderValue();
-                                } else {
-                                    itemVal = (int) customItem.getSliderValue();
+                        Map<String, Integer> map = new HashMap<>();
+                        if (cursor.getCount() > 0) {
+                            while (cursor.moveToNext()) {
+                                double itemVal = 0.0d;
+                                String jsonItemList = cursor.getString(1);
+                                total += cursor.getInt(2);
+                                List<CustomItem> itemList = getParserJsonList(jsonItemList);
+                                for (CustomItem customItem : itemList) {
+                                    if (map.containsKey(customItem.getName())) {
+                                        itemVal = map.get(customItem.getName()) + (int) customItem.getSliderValue();
+                                    } else {
+                                        itemVal = (int) customItem.getSliderValue();
+                                    }
+                                    map.put(customItem.getName(), (int) itemVal);
+                                    itemVal = 0.0d;
                                 }
-                                map.put(customItem.getName(), (int) itemVal);
-                                itemVal = 0.0d;
                             }
+                            System.err.println("map: " + map);
+                            AlertDialog.Builder builder1 = new AlertDialog.Builder(ReportActivity.this);
+                            builder1.setCancelable(false);
+                            builder1.setTitle("Color or B&W pdf ? ");
+                            builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    generateReportPdf(startDateFormatted, endDateFormatted, map, total, true);
+                                    total = 0;
+                                }
+                            });
+                            builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    generateReportPdf(startDateFormatted, endDateFormatted, map, total, false);
+                                    total = 0;
+                                }
+                            });
+
+                            AlertDialog dialog1 = builder1.create();
+                            dialog1.show();
+                        } else {
+                            View rootView = findViewById(android.R.id.content);
+                            Snackbar.make(rootView, "No data to show !", Snackbar.LENGTH_LONG)
+                                    .setDuration(5000)
+                                    .setAction("Close", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                        }
+                                    })
+                                    .show();
                         }
                     }
-                        System.err.println("map: "+map);
-                        AlertDialog.Builder builder1 = new AlertDialog.Builder(ReportActivity.this);
-                        builder1.setCancelable(false);
-                        builder1.setTitle("Color or B&W pdf ? ");
-                        builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                generateReportPdf(startDateFormatted,endDateFormatted, map, total, true);
-                                total = 0;
-                            }
-                        });
-                        builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                generateReportPdf(startDateFormatted,endDateFormatted, map, total, false);
-                                total = 0;
-                            }
-                        });
-
-                        AlertDialog dialog1 = builder1.create();
-                        dialog1.show();
-
-
-
-                        AlertDialog.Builder builder = new AlertDialog.Builder(ReportActivity.this);
-                        builder.setCancelable(false);
-                        builder.setTitle("View Barchart ?");
-                        builder.setPositiveButton("Show", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                Intent intent = new Intent(ReportActivity.this, BarChartActivity.class);
-                                intent.putExtra("map", (Serializable) map);
-                                startActivity(intent);
-                            }
-                        });
-                        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-
-                        AlertDialog dialog = builder.create();
-                        dialog.show();
-
-//                    writeToFile(startDateFormatted,endDateFormatted, map, total, 0);
-
-                    }
-
                 }
             }
 
@@ -283,7 +263,7 @@ public class ReportActivity extends AppCompatActivity {
 
         StringBuilder stringBuilder = new StringBuilder();
 
-        map.forEach((k,v) -> {
+        map.forEach((k, v) -> {
             stringBuilder.append(k);
             stringBuilder.append(" : ");
             stringBuilder.append(map.get(k));
@@ -300,14 +280,14 @@ public class ReportActivity extends AppCompatActivity {
         String subPath = pathMain + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "reports";
 
 
-        if(!Files.exists(Paths.get(subPath))) {
+        if (!Files.exists(Paths.get(subPath))) {
             new File(subPath).mkdirs();
         }
-        String filePath = subPath + File.separator + "report_"+new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())+".txt";
+        String filePath = subPath + File.separator + "report_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".txt";
 
         FileOutputStream fos = null;
         try {
-            String content = "Last "+noOfDays+" days report details\nFrom "+oldDateVal+" - To "+newDateVal+"\n\nItems ~~ Qty\n\n"+printMap(map)+" \n\nTotal Sales in (Rs): "+total;
+            String content = "Last " + noOfDays + " days report details\nFrom " + oldDateVal + " - To " + newDateVal + "\n\nItems ~~ Qty\n\n" + printMap(map) + " \n\nTotal Sales in (Rs): " + total;
             fos = new FileOutputStream(new File(filePath));
             fos.write(content.getBytes());
             Toast.makeText(ReportActivity.this, "Report generated in documents", Toast.LENGTH_LONG).show();
@@ -347,7 +327,7 @@ public class ReportActivity extends AppCompatActivity {
         LocalDate date = LocalDate.now();
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.YEAR, date.getYear());
-        calendar.set(Calendar.MONTH, date.getMonthValue()-1);
+        calendar.set(Calendar.MONTH, date.getMonthValue() - 1);
         calendar.set(Calendar.DAY_OF_MONTH, date.getDayOfMonth());
         calendar.add(Calendar.DAY_OF_MONTH, -noOfDays);
         Date newDate = calendar.getTime();
@@ -357,13 +337,11 @@ public class ReportActivity extends AppCompatActivity {
         String newDateVal = String.valueOf(date);
 
 
-
-
-        Cursor cursor = dbHelper.getPeriodRecords(oldDateVal,newDateVal);
-        double itemVal=0.0d;
+        Cursor cursor = dbHelper.getPeriodRecords(oldDateVal, newDateVal);
+        double itemVal = 0.0d;
         Map<String, Integer> map = new HashMap<>();
-        if(cursor.getCount()>0){
-            while(cursor.moveToNext()){
+        if (cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
                 itemVal = 0.0d;
                 String jsonItemList = cursor.getString(1);
                 total += cursor.getInt(2);
@@ -374,56 +352,40 @@ public class ReportActivity extends AppCompatActivity {
                     itemVal = 0.0d;
                 }
             }
+
+            AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
+            builder1.setCancelable(false);
+            builder1.setTitle("Color or B&W pdf ? ");
+            builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    generateReportPdf(oldDateVal, newDateVal, map, total, true);
+                    total = 0;
+                }
+            });
+            builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    generateReportPdf(oldDateVal, newDateVal, map, total, false);
+                    total = 0;
+                }
+            });
+
+            AlertDialog dialog1 = builder1.create();
+            dialog1.show();
+
+
+        } else {
+            View rootView = findViewById(android.R.id.content);
+            Snackbar.make(rootView, "No data to show !", Snackbar.LENGTH_LONG)
+                    .setDuration(5000)
+                    .setAction("Close", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                        }
+                    })
+                    .show();
         }
-
-//        writeToFile(oldDateVal,newDateVal, map, total, noOfDays);
-        AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
-        builder1.setCancelable(false);
-        builder1.setTitle("Color or B&W pdf ? ");
-        builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                generateReportPdf(oldDateVal,newDateVal, map, total, true);
-                total = 0;
-            }
-        });
-        builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                generateReportPdf(oldDateVal,newDateVal, map, total, false);
-                total = 0;
-            }
-        });
-
-        AlertDialog dialog1 = builder1.create();
-        dialog1.show();
-
-
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(false);
-        builder.setTitle("View Barchart ?");
-        builder.setPositiveButton("Show", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Intent intent = new Intent(ReportActivity.this, BarChartActivity.class);
-                intent.putExtra("map", (Serializable) map);
-                startActivity(intent);
-            }
-        });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-
-
-
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -482,7 +444,7 @@ public class ReportActivity extends AppCompatActivity {
             table.setTextAlignment(TextAlignment.CENTER);
 
 
-            if(colorFul){
+            if (colorFul) {
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Item Description")).setBackgroundColor(headerColor));
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Rate")).setBackgroundColor(headerColor));
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Quantity")).setBackgroundColor(headerColor));
@@ -496,23 +458,22 @@ public class ReportActivity extends AppCompatActivity {
             }
 
 
-
             if (map != null) {
                 int index = 0;
 
                 for (Map.Entry<String, Integer> entry : map.entrySet()) {
                     boolean isOdd = index++ % 2 == 1;
-                    if(colorFul) {
-                        if(isOdd){
+                    if (colorFul) {
+                        if (isOdd) {
                             table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(entry.getKey()))));
-                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()),0);
+                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
                             Integer qty = entry.getValue();
                             table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(price))));
                             table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(qty))));
                             table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(price * qty))));
                         } else {
                             table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(entry.getKey()))));
-                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()),0);
+                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
                             Integer qty = entry.getValue();
                             table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(price))));
                             table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(qty))));
@@ -520,7 +481,7 @@ public class ReportActivity extends AppCompatActivity {
                         }
                     } else {
                         table.addCell(new Cell().add(new Paragraph(String.valueOf(entry.getKey()))));
-                        Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()),0);
+                        Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
                         Integer qty = entry.getValue();
                         table.addCell(new Cell().add(new Paragraph(String.valueOf(price))));
                         table.addCell(new Cell().add(new Paragraph(String.valueOf(qty))));
@@ -529,12 +490,12 @@ public class ReportActivity extends AppCompatActivity {
                 }
             }
 
-            if(colorFul){
-                table.addFooterCell(new Cell(1,2).setBorder(null).setBold().add(new Paragraph("")));
+            if (colorFul) {
+                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
                 table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph("Total")).setBackgroundColor(headerColor));
                 table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(headerColor));
             } else {
-                table.addFooterCell(new Cell(1,2).setBorder(null).setBold().add(new Paragraph("")));
+                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
                 table.addFooterCell(new Cell().setBold().add(new Paragraph("Total")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
                 table.addFooterCell(new Cell().setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(ColorConstants.LIGHT_GRAY));
             }
@@ -543,7 +504,7 @@ public class ReportActivity extends AppCompatActivity {
             document.add(table);
 
             Paragraph footerDate = new Paragraph()
-                    .add("\nReport generated on "+ new SimpleDateFormat("dd-MM-yyyy hh:mm:ss a").format(new Date()) +"\n");
+                    .add("\nReport generated on " + new SimpleDateFormat("dd-MM-yyyy hh:mm:ss a").format(new Date()) + "\n");
 
             document.add(footerDate);
 
@@ -572,7 +533,8 @@ public class ReportActivity extends AppCompatActivity {
         JsonArray listArr = jsonObject.getAsJsonArray("itemList");
         JsonArray listOtherArr = jsonObject.getAsJsonArray("otherItemsList");
         Gson gson = new Gson();
-        Type listType = new TypeToken<List<CustomItem>>() {}.getType();
+        Type listType = new TypeToken<List<CustomItem>>() {
+        }.getType();
         List<CustomItem> itemList = gson.fromJson(listArr, listType);
         List<CustomItem> otherItemList = gson.fromJson(listOtherArr, listType);
         itemList.addAll(otherItemList);

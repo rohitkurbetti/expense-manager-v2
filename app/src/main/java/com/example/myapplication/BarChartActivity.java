@@ -3,11 +3,7 @@ package com.example.myapplication;
 import android.content.Intent;
 import android.os.Bundle;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -17,7 +13,6 @@ import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +21,6 @@ public class BarChartActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_bar_chart);
 
         Intent intent = getIntent();
@@ -48,7 +42,7 @@ public class BarChartActivity extends AppCompatActivity {
 
         // Create a data set
         BarDataSet dataSet = new BarDataSet(entries, "Items Sold");
-        dataSet.setColors(new int[]{R.color.cyan,R.color.orange},R.color.yellow1);
+        dataSet.setColors(new int[]{R.color.cyan, R.color.orange}, R.color.yellow1);
 
         // Create BarData with the data set
         BarData barData = new BarData(dataSet);
@@ -65,27 +59,5 @@ public class BarChartActivity extends AppCompatActivity {
         barChart.animateY(1000); // animate the chart
         barChart.invalidate(); // refresh the chart
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-//            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-//            return insets;
-//        });
     }
 }

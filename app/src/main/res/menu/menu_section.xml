@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:visible="false"
+        android:id="@+id/action_check_missing_expenses"
+        android:icon="@drawable/notification_svgrepo_com__2_"
+        android:title="Custom Action"
+        app:showAsAction="always"
+        />
+</menu>

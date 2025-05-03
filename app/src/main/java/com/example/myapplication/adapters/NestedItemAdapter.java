@@ -55,6 +55,10 @@ public class NestedItemAdapter extends ArrayAdapter<DtoJsonEntity> {
         TextView titleTextView = convertView.findViewById(R.id.textViewParticulars);
         TextView amountTextView = convertView.findViewById(R.id.textViewAmount);
         TextView descriptionTextView = convertView.findViewById(R.id.textViewCategory);
+        TextView textViewItemSrNo = convertView.findViewById(R.id.textViewItemSrNo);
+
+        textViewItemSrNo.setText((position+1)+".");
+
 
 //        iconViewNested.setImageDrawable(context.getDrawable(currentItem.getId()));
         titleTextView.setText(currentItem.getName());

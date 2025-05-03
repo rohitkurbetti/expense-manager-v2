@@ -5,18 +5,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 
 import com.example.myapplication.R;
-import com.example.myapplication.dtos.DtoJsonEntity;
-import com.example.myapplication.dtos.Invoice;
 import com.example.myapplication.dtos.Item;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class InvoiceDetailViewAdapter extends ArrayAdapter<Item> {
@@ -38,12 +32,14 @@ public class InvoiceDetailViewAdapter extends ArrayAdapter<Item> {
 
         Item currentItem = items.get(position);
 
+        TextView textViewItemSrNo = convertView.findViewById(R.id.textViewItemSrNo);
         TextView titleTextView = convertView.findViewById(R.id.textViewParticulars);
         TextView amountTextView = convertView.findViewById(R.id.textViewAmount);
         TextView descriptionTextView = convertView.findViewById(R.id.textViewCategory);
 
+        textViewItemSrNo.setText((position+1) + ".");
         titleTextView.setText(currentItem.getItemName());
-        amountTextView.setText(String.valueOf("\u20B9"+currentItem.getItemAmount()));
+        amountTextView.setText("\u20B9"+currentItem.getItemAmount());
         descriptionTextView.setText("x"+currentItem.getItemQty());
 
 

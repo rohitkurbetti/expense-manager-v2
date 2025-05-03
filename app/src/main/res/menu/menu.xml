@@ -85,6 +85,7 @@
         />
 
     <item
+        android:visible="false"
         android:id="@+id/toggle_cloud_store"
         android:orderInCategory="100"
         android:title="Cloud Storage On/Off"
@@ -93,6 +94,7 @@
         />
 
     <item
+        android:visible="false"
         android:id="@+id/config"
         android:title="Configuration"
         android:orderInCategory="100"
@@ -105,6 +107,13 @@
         android:orderInCategory="100"
         android:icon="@drawable/database_svgrepo_com__1_"
         app:showAsAction="always"
+        />
+
+    <item
+        android:id="@+id/invalidateExpenses"
+        android:title="Sync Expenses"
+        android:orderInCategory="100"
+        app:showAsAction="never"
         />
 
 </menu>

@@ -1,5 +1,7 @@
 package com.example.myapplication;
 
+import static com.example.myapplication.ExpenseActivity.saveExpenseOnCloud;
+
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
@@ -15,6 +17,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -62,6 +65,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.adapters.CsvAdapter;
 import com.example.myapplication.adapters.CustomAdapter;
+import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.NestedListAdapter;
 import com.example.myapplication.adapters.NestedOtherListAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
@@ -86,9 +90,14 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -107,6 +116,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -114,10 +124,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -140,7 +152,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String SHARED_PREFS_FILE = "my_shared_prefs";
     private static final String FIRST_LAUNCH_KEY = "isFirstLaunch";
-
     private final String csvFileName = "item_list.csv";
     private boolean isIconOne = true;
     boolean isLoadFromSystem = true;
@@ -150,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
     DatabaseHelper dbHelper;
     ExpenseDbHelper expenseDbHelper;
     private ArrayAdapter<String> spinnerAdapter;
-    private Map<String,Integer> otherItemsMap;
+    private Map<String, Integer> otherItemsMap;
     ProgressDialog pd;
     private static final int REQUEST_MANAGE_STORAGE = 123;
     private static final int REQUEST_WRITE_STORAGE = 112;
@@ -159,7 +170,15 @@ public class MainActivity extends AppCompatActivity {
     private ListView otherListView;
     private TextView bannerOtherItems;
     private TextView selectDateLink;
+    private TextView bannerTxt;
     private SharedPreferences sharedPreferences;
+
+    com.itextpdf.kernel.colors.Color headerColor1 = new DeviceRgb(102, 178, 255); //
+    com.itextpdf.kernel.colors.Color headerColor = new DeviceRgb(255, 128, 0); // Orange
+    com.itextpdf.kernel.colors.Color oddRowColor1 = new DeviceRgb(204, 229, 255); //
+    com.itextpdf.kernel.colors.Color oddRowColor = new DeviceRgb(255, 229, 204); // Light Orange
+    int total = 0;
+
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -179,11 +198,13 @@ public class MainActivity extends AppCompatActivity {
 
         sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, MODE_PRIVATE);
 
+        setDeviceModelInSharedPrefs();
+
+
         // Check if app is launched for the first time
         if (isFirstLaunch()) {
             showSetItemPricesDialog();
         }
-
 
 
         FirebaseApp.initializeApp(this);
@@ -210,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View view) {
-                if(itemList.size()>0){
+                if (itemList.size() > 0) {
                     showAlertDialog(itemList);
                 } else {
                     Toast.makeText(MainActivity.this, "Please select 1 item", Toast.LENGTH_SHORT).show();
@@ -231,6 +252,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
+    private void setDeviceModelInSharedPrefs() {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("model", Build.MODEL.contains("samsung") ? "samsung" :
+                Build.MODEL.contains("moto g84 5G") ? "moto" :
+                Build.MODEL.contains("Redmi Note 9 Pro") ? "redmi" : Build.MODEL);
+        editor.apply();
+    }
+
 
     private boolean isFirstLaunch() {
         return sharedPreferences.getBoolean(FIRST_LAUNCH_KEY, true);
@@ -267,11 +297,11 @@ public class MainActivity extends AppCompatActivity {
         File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "coldrinks.csv");
 
         List<String> coldDrinks = readCSVFromRawResource(file);
-        if(coldDrinks != null && coldDrinks.size()>0){
+        if (coldDrinks != null && coldDrinks.size() > 0) {
             menuItem.setTitle("Load Items from System");
             isLoadFromSystem = false;
             itemList.clear();
-            coldDrinks.forEach( item -> {
+            coldDrinks.forEach(item -> {
                 itemList.add(new CustomItem(item, false, 0));
             });
 
@@ -298,9 +328,9 @@ public class MainActivity extends AppCompatActivity {
         buttonAdd.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String text =  editText.getText().toString();
+                String text = editText.getText().toString();
                 stringBuilder.append(text);
-                if(text != null && !text.equals("")){
+                if (text != null && !text.equals("")) {
                     editTextMultiLine.setText(stringBuilder.toString());
                     stringBuilder.append("\n");
                 }
@@ -359,17 +389,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadItemsFromSystem(List<CustomItem> itemList) {
         itemList.clear();
-        if(loadItemsFromInteralStorage(itemList, csvFileName)) {
+        if (loadItemsFromInteralStorage(itemList, csvFileName)) {
 //            List<CustomItem> itemList1 = readCSVFromAssets(this, csvFileName);
 //            itemList.addAll(itemList1);
 //            itemList1.clear();
 
-
-
 //            appendToCSVInDownloads(fileName,"Fruit Beer");
 
 //            loadItemsFromInteralStorage(itemList, csvFileName);
-
 
         } else {
 
@@ -389,6 +416,7 @@ public class MainActivity extends AppCompatActivity {
             itemList.add(new CustomItem("Taak", false, 0));
             itemList.add(new CustomItem("Kulfi", false, 0));
             itemList.add(new CustomItem("Stwbry Soda", false, 0));
+            itemList.add(new CustomItem("Pineapple Soda", false, 0));
             itemList.add(new CustomItem("Water_H", false, 0));
             itemList.add(new CustomItem("Water_F", false, 0));
             itemList.add(new CustomItem("Mng_Lssi_H", false, 0));
@@ -399,7 +427,6 @@ public class MainActivity extends AppCompatActivity {
             itemList.add(new CustomItem("Mango", false, 0));
             itemList.add(new CustomItem("Strwbry", false, 0));
         }
-
 
 
     }
@@ -426,7 +453,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e("CSVReader", "Error reading CSV file", e);
             return false;
         }
-        if(itemList.size() == 0) {
+        if (itemList.size() == 0) {
             return false;
         }
         return true;
@@ -461,7 +488,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             bufferedWriter.close();
-            Toast.makeText(this, "Inserted "+ items.size() +" items", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Inserted " + items.size() + " items", Toast.LENGTH_SHORT).show();
 //            loadItemsFromInteralStorage(items, fileName);
         } catch (IOException e) {
             Log.e("CSVReader", "Error writing to CSV file", e);
@@ -475,7 +502,7 @@ public class MainActivity extends AppCompatActivity {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
             while ((line = br.readLine()) != null) {
-                coldDrinks.add(line.replace("," ,""));
+                coldDrinks.add(line.replace(",", ""));
             }
             br.close();
             return coldDrinks;
@@ -484,7 +511,6 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
     }
-
 
 
     private void checkStoragePermission() {
@@ -541,7 +567,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private void getSHA() {
         // Add code to print out the key hash
         try {
@@ -558,7 +583,6 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
-
 
 
     private void getAllDocumentsFromCollection(String invoices) {
@@ -584,12 +608,12 @@ public class MainActivity extends AppCompatActivity {
                         for (DocumentSnapshot document : documents) {
 //                            Log.d(TAG, document.getId() + " => " + document.getData());
                             Long id = document.getLong("invoice_id");
-                            Long total =document.getLong("total");
+                            Long total = document.getLong("total");
                             String createdDate = document.getString("created_date");
                             String createdDateTime = document.getString("created_date_time");
                             String jsonList = document.getString("item_list_json");
 
-                            stringBuilder.append(id+" "+jsonList+" "+total+" "+createdDateTime+" "+createdDate+"\n\n\n\n|=================================|\n\n\n\n");
+                            stringBuilder.append(id + " " + jsonList + " " + total + " " + createdDateTime + " " + createdDate + "\n\n\n\n|=================================|\n\n\n\n");
 
                             // You can access individual fields like this:
                             // String field1 = document.getString("field1");
@@ -603,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         pd.dismiss();
-                        Toast.makeText(MainActivity.this, "Error getting documents from collection "+invoices, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "Error getting documents from collection " + invoices, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -616,7 +640,7 @@ public class MainActivity extends AppCompatActivity {
         textView.setText(null);
         builder.setView(customView);
         builder.setCancelable(false);
-        if(stringBuildercontent != null){
+        if (stringBuildercontent != null) {
             textView.setText(stringBuildercontent.toString());
         }
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -632,9 +656,9 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void showAlertDialog(List<CustomItem> itemList) {
-        itemList = itemList.stream().filter(i -> i.getSliderValue()>0.0f).collect(Collectors.toList());
+        itemList = itemList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
 
-        if(itemList.size()>0) {
+        if (itemList.size() > 0) {
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Review items");
@@ -681,9 +705,9 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.this,
                             (DatePicker view1, int selectedYear, int selectedMonth, int selectedDay) -> {
                                 // Handle selected date (month is 0-indexed, so add 1)
-                                String monthName = Month.of(selectedMonth+1).getDisplayName(TextStyle.SHORT, java.util.Locale.ENGLISH);
+                                String monthName = Month.of(selectedMonth + 1).getDisplayName(TextStyle.SHORT, java.util.Locale.ENGLISH);
                                 String selectedDate = selectedDay + "-" + monthName + "-" + selectedYear;
-                                String strFmtDay = String.format("%02d",selectedDay);
+                                String strFmtDay = String.format("%02d", selectedDay);
                                 selectedDate = strFmtDay + "-" + monthName + "-" + selectedYear;
                                 selectDateLink.setText(selectedDate);
                             },
@@ -694,22 +718,19 @@ public class MainActivity extends AppCompatActivity {
             });
 
 
-
-
-
             builder.setView(customView);
 
             checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    if(isChecked){
+                    if (isChecked) {
 //                        TextView newTextView = new TextView(MainActivity.this);
 //                        newTextView.setText("New Dynamic View");
 //                        newTextView.setPadding(0, 20, 0, 0);
 //                        newTextView.setTextSize(16);
 
 //                        otherEntityView.setVisibility(View.VISIBLE);
-                        Map<String, Integer> itemsMap =   showOtherEntityAlert(null, false, checkBox);
+                        Map<String, Integer> itemsMap = showOtherEntityAlert(null, false, checkBox);
                     } else {
                         otherItemsMap.clear();
 //                        otherTextView.setText("");
@@ -746,9 +767,9 @@ public class MainActivity extends AppCompatActivity {
                         //map to list;
                         otherItemsList = new ArrayList<>();
 
-                        if(otherItemsMap !=null && otherItemsMap.size()>0){
-                            otherItemsMap.forEach((k,v) -> {
-                                CustomItem customItem = new CustomItem(k,false, 1, v);
+                        if (otherItemsMap != null && otherItemsMap.size() > 0) {
+                            otherItemsMap.forEach((k, v) -> {
+                                CustomItem customItem = new CustomItem(k, false, 1, v);
                                 otherItemsList.add(customItem);
                             });
                         }
@@ -772,7 +793,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select minimum 1 item", Toast.LENGTH_SHORT).show();
 
             Boolean otherItemsOnly = true;
-            showOtherEntityAlert(null,otherItemsOnly, null);
+            showOtherEntityAlert(null, otherItemsOnly, null);
 
 
         }
@@ -818,30 +839,25 @@ public class MainActivity extends AppCompatActivity {
 //                etItemValue.setText("");
 //            }
 //        });
+
         btnAddToBucket.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String itemName = etItemName.getText().toString();
                 String itemValue = etItemValue.getText().toString();
-                if(itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()){
+                if (itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()) {
                     addItemToSpinner(itemName, itemValue);
                     showCustomToast("Item " + itemName + " added");
-                    animateBackground(spinnerBucket , false);
+                    animateBackground(spinnerBucket, false);
 
                 }
-
-
-
             }
-
-
-
 
             private void addItemToSpinner(String itemName, String itemValue) {
                 items.clear();
                 itemMap.put(itemName, Integer.valueOf(itemValue));
-                itemMap.forEach((k,v) -> {
-                    items.add(k+" = "+v);
+                itemMap.forEach((k, v) -> {
+                    items.add(k + " = " + v);
                 });
                 etItemName.setText("");
                 etItemValue.setText("");
@@ -864,7 +880,7 @@ public class MainActivity extends AppCompatActivity {
                     items.remove(selectedItemPosition);
                     itemMap.remove(itemName.split(" = ")[0]);
                     spinnerAdapter.notifyDataSetChanged();
-                    showCustomToast("Item "+ itemName.split(" = ")[0] +" removed");
+                    showCustomToast("Item " + itemName.split(" = ")[0] + " removed");
 
                 }
             }
@@ -881,33 +897,33 @@ public class MainActivity extends AppCompatActivity {
                 Gson gson = new Gson();
                 String jsonString = gson.toJson(itemMap);
 
-                System.err.println("MAP json >>> "+itemMap);
+                System.err.println("MAP json >>> " + itemMap);
 
                 otherItemsMap.putAll(itemMap);
                 otherItemsList = new ArrayList<>();
 //                if(otherItemsOnly){
 
 
-                    if(otherItemsMap !=null && otherItemsMap.size()>0){
-                        otherItemsMap.forEach((k,v) -> {
-                            CustomItem customItem = new CustomItem(k,false, 1, v);
-                            otherItemsList.add(customItem);
-                            SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
-                            // Use the editor to put values into SharedPreferences
-                            SharedPreferences.Editor editor = sharedPreferences.edit();
-                            editor.putInt(k.toUpperCase(Locale.getDefault()), v);
-                            // Commit the changes
-                            editor.apply();
-                        });
-                        try {
-                            if(otherItemsOnly){
-                                calculate(new ArrayList<>(),otherItemsList, null, otherItemsOnly);
-                                otherItemsList.clear();
-                            }
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                if (otherItemsMap != null && otherItemsMap.size() > 0) {
+                    otherItemsMap.forEach((k, v) -> {
+                        CustomItem customItem = new CustomItem(k, false, 1, v);
+                        otherItemsList.add(customItem);
+                        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+                        // Use the editor to put values into SharedPreferences
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.putInt(k.toUpperCase(Locale.getDefault()), v);
+                        // Commit the changes
+                        editor.apply();
+                    });
+                    try {
+                        if (otherItemsOnly) {
+                            calculate(new ArrayList<>(), otherItemsList, null, otherItemsOnly);
+                            otherItemsList.clear();
                         }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
+                }
 //                }
 
             }
@@ -926,7 +942,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
-                if(otherItemsList != null && otherItemsList.size()>0 ){
+                if (otherItemsList != null && otherItemsList.size() > 0) {
 //                    char bulletSymbol='\u2022';
 //
 //                    SpannableStringBuilder stringBuilder = new SpannableStringBuilder();
@@ -941,7 +957,7 @@ public class MainActivity extends AppCompatActivity {
                     otherListView.setVisibility(View.VISIBLE);
                     bannerOtherItems.setVisibility(View.VISIBLE);
 
-                    NestedOtherListAdapter nestedOtherListAdapter = new NestedOtherListAdapter(builder.getContext(), otherItemsList,otherListView, checkBox,bannerOtherItems);
+                    NestedOtherListAdapter nestedOtherListAdapter = new NestedOtherListAdapter(builder.getContext(), otherItemsList, otherListView, checkBox, bannerOtherItems);
                     otherListView.setAdapter(nestedOtherListAdapter);
 
                     nestedOtherListAdapter.notifyDataSetChanged();
@@ -949,7 +965,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
 //                    otherListView.setVisibility(View.GONE);
 //                    bannerOtherItems.setVisibility(View.GONE);
-                    if(checkBox != null){
+                    if (checkBox != null) {
                         checkBox.setChecked(false);
                     }
                 }
@@ -1022,7 +1038,7 @@ public class MainActivity extends AppCompatActivity {
 
     private int getRandomNiceColor() {
         // Define an array of specific nice-looking colors
-        int[] colors = new int[] {
+        int[] colors = new int[]{
                 Color.rgb(129, 199, 132),  // Light Green
                 Color.rgb(100, 181, 246),  // Light Blue
                 Color.rgb(255, 213, 79),   // Amber
@@ -1046,22 +1062,22 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void calculate(List<CustomItem> itemList, List<CustomItem> otherItemsList, String selectDate, Boolean otherItemsOnly) throws IOException {
-        itemList = itemList.stream().filter(i -> i.getSliderValue()>0.0f).collect(Collectors.toList());
-        otherItemsList = otherItemsList.stream().filter(i -> i.getSliderValue()>0.0f).collect(Collectors.toList());
+        itemList = itemList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
+        otherItemsList = otherItemsList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
 
         DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("dd-MMM-yyyy").toFormatter(Locale.ENGLISH);
-        if(selectDate==null){
+        if (selectDate == null) {
             selectDate = String.valueOf(LocalDate.now());
         }
-        LocalDate localDate=LocalDate.now();
-        if(otherItemsOnly) {
+        LocalDate localDate = LocalDate.now();
+        if (otherItemsOnly) {
             localDate = LocalDate.parse(selectDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         } else {
             localDate = LocalDate.parse(selectDate, dateTimeFormatter);
         }
-        if(itemList.size()>0 || otherItemsList.size()>0){
+        if (itemList.size() > 0 || otherItemsList.size() > 0) {
 
-            Long grandTotal = getTotal(itemList,otherItemsList);
+            Long grandTotal = getTotal(itemList, otherItemsList);
 
             DtoJson dtoJson = new DtoJson();
             dtoJson.setName(null);
@@ -1071,15 +1087,15 @@ public class MainActivity extends AppCompatActivity {
             dtoJson.setItemList(itemList);
             dtoJson.setOtherItemsList(otherItemsList);
 
-            String dtoJsonStr =  convertCustomItemsToJson(dtoJson);
+            String dtoJsonStr = convertCustomItemsToJson(dtoJson);
             System.err.println(dtoJsonStr);
 
-            long newRowId = dbHelper.saveInvoiceTransaction("\""+dtoJsonStr+"\"",grandTotal, MainActivity.this, dtoJson, null);
-            if(newRowId != -1){
-                writeTextFile(dtoJsonStr);
+            long newRowId = dbHelper.saveInvoiceTransaction("\"" + dtoJsonStr + "\"", grandTotal, MainActivity.this, dtoJson, null);
+            if (newRowId != -1) {
+                writeTextFile(dtoJsonStr, newRowId);
                 File pdfFile = PDFGeneratorUtil.generateInvoice(dtoJson, newRowId, getApplicationContext());
                 View rootView = findViewById(android.R.id.content);
-                Snackbar.make(rootView, "Invoice generated "+newRowId, Snackbar.LENGTH_LONG)
+                Snackbar.make(rootView, "Invoice generated " + newRowId, Snackbar.LENGTH_LONG)
                         .setDuration(5000)
                         .setAction("View", new View.OnClickListener() {
                             @Override
@@ -1089,23 +1105,21 @@ public class MainActivity extends AppCompatActivity {
                             }
                         })
                         .show();
-                writeAllDbContentInTxtFile(dtoJson,dbHelper);
+                writeAllDbContentInTxtFile(dtoJson, dbHelper);
                 resetSliders();
             }
         } else {
             Toast.makeText(this, "Please select minimum 1 item", Toast.LENGTH_SHORT).show();
         }
 
-//        PDFGenerator.generateInvoicePDF(MainActivity.this, dtoJsonStr);
-//        writeTextFile(dtoJsonStr);
 
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private String createDtmFromLocalDate(LocalDate localDate) {
         LocalDateTime localDateTime = LocalDateTime.now();
-        return localDate.toString()+" "+String.format("%02d",localDateTime.getHour())+":"
-                +String.format("%02d",localDateTime.getMinute())+":"+String.format("%02d",localDateTime.getSecond());
+        return localDate.toString() + " " + String.format("%02d", localDateTime.getHour()) + ":"
+                + String.format("%02d", localDateTime.getMinute()) + ":" + String.format("%02d", localDateTime.getSecond());
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -1116,16 +1130,16 @@ public class MainActivity extends AppCompatActivity {
         try {
             String pdfPathMain = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
 
-            String pdfPath = pdfPathMain+File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator+"invoices";
+            String pdfPath = pdfPathMain + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "invoices";
 
-            if(!Files.exists(Paths.get(pdfPath))){
+            if (!Files.exists(Paths.get(pdfPath))) {
                 new File(pdfPath).mkdirs();
             }
 
             LocalDateTime localDateTime = LocalDateTime.now();
             String frmtted = localDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 
-            File pdfFile = new File(pdfPath, "invoice_"+frmtted+".pdf");
+            File pdfFile = new File(pdfPath, "invoice_" + frmtted + ".pdf");
             PdfWriter writer = new PdfWriter(new FileOutputStream(pdfFile));
             PdfDocument pdfDocument = new PdfDocument(writer);
             Document document = new Document(pdfDocument);
@@ -1146,7 +1160,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             Div div1 = new Div();
-            div1.setMargins(10,5,10,5);
+            div1.setMargins(10, 5, 10, 5);
 
 
             float[] columnWidths = {1, 15};
@@ -1165,8 +1179,8 @@ public class MainActivity extends AppCompatActivity {
 
 
             // Add cells with words
-            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth()/2)).setBorder(Border.NO_BORDER).add(headingTitle));
-            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth()/2)).setBorder(Border.NO_BORDER).add(title));
+            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth() / 2)).setBorder(Border.NO_BORDER).add(headingTitle));
+            tableTe.addCell(new Cell().setWidth((pdfDocument.getDefaultPageSize().getWidth() / 2)).setBorder(Border.NO_BORDER).add(title));
 
             // Add the table to the document
             document.add(tableTe);
@@ -1183,7 +1197,7 @@ public class MainActivity extends AppCompatActivity {
 
             String name = dtoJson.getName();
 
-            if(name == null){
+            if (name == null) {
                 name = "";
             }
 
@@ -1211,7 +1225,7 @@ public class MainActivity extends AppCompatActivity {
             if (itemList != null) {
                 for (CustomItem item : itemList) {
                     table.addCell(new Cell().add(new Paragraph(item.getName())));
-                    table.addCell(new Cell().add(new Paragraph(String.valueOf(sharedPreferences.getInt(item.getName().toUpperCase(Locale.getDefault()),0)))));
+                    table.addCell(new Cell().add(new Paragraph(String.valueOf(sharedPreferences.getInt(item.getName().toUpperCase(Locale.getDefault()), 0)))));
                     table.addCell(new Cell().add(new Paragraph(String.valueOf((int) item.getSliderValue()))));
                     table.addCell(new Cell().add(new Paragraph(String.valueOf(item.getAmount()))));
                 }
@@ -1230,7 +1244,7 @@ public class MainActivity extends AppCompatActivity {
             writer.close();
 
             View rootView = findViewById(android.R.id.content);
-            Snackbar.make(rootView, "Invoice generated "+newRowId, Snackbar.LENGTH_LONG)
+            Snackbar.make(rootView, "Invoice generated " + newRowId, Snackbar.LENGTH_LONG)
                     .setDuration(5000)
                     .setAction("View", new View.OnClickListener() {
                         @Override
@@ -1240,11 +1254,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     })
                     .show();
-
-
-
-
-
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
@@ -1286,20 +1295,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void writeAllDbContentInTxtFile(DtoJson dtoJson, DatabaseHelper dbHelper) throws IOException {
-        dbHelper.getAllDbRecords(dtoJson,MainActivity.this);
+        dbHelper.getAllDbRecords(dtoJson, MainActivity.this);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private void writeTextFile(String dtoJsonStr) throws IOException {
+    private void writeTextFile(String dtoJsonStr, long newRowId) throws IOException {
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
 
         String subPath = path + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "json data";
 
-        if(!Files.exists(Paths.get(subPath))){
+        if (!Files.exists(Paths.get(subPath))) {
             new File(subPath).mkdirs();
         }
-
-        String filePath = subPath + File.separator + "Invoice_Dtl_Jsn_"+new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())+".txt";
+        String dateFrmtted = new SimpleDateFormat("ddMMMyy_HHmmss").format(new Date());
+        String filePath = subPath + File.separator + "Invoice_Dtl_Jsn_" + newRowId + "_" + dateFrmtted + ".txt";
         try {
             // Create a BufferedWriter to write to the file
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
@@ -1308,14 +1317,14 @@ public class MainActivity extends AppCompatActivity {
             // Close the writer
             writer.close();
         } catch (IOException e) {
-            Toast.makeText(this, "Error writing to the file: ",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error writing to the file: ", Toast.LENGTH_SHORT).show();
         }
     }
 
     private Long getTotal(List<CustomItem> itemList, List<CustomItem> otherItemsList) {
-         long items = (long) itemList.stream().mapToDouble(CustomItem::getAmount).sum();
-         long otherItems = (long) otherItemsList.stream().mapToDouble(CustomItem::getAmount).sum();
-         return items + otherItems;
+        long items = (long) itemList.stream().mapToDouble(CustomItem::getAmount).sum();
+        long otherItems = (long) otherItemsList.stream().mapToDouble(CustomItem::getAmount).sum();
+        return items + otherItems;
     }
 
 
@@ -1326,7 +1335,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu,menu);
+        getMenuInflater().inflate(R.menu.menu, menu);
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -1367,12 +1376,13 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_restore) {
             try {
                 restoreFromBackedUpCsv();
+                restoreFromBackedUpExpensesCsv();
             } catch (IOException e) {
+                Toast.makeText(this, "Restore Failed!!", Toast.LENGTH_LONG).show();
                 throw new RuntimeException(e);
             }
             return true;
         }
-
 
 
         if (id == R.id.action_delete_cloud_date) {
@@ -1430,7 +1440,7 @@ public class MainActivity extends AppCompatActivity {
             editor.apply();
 
             String cloudStorageState = "Off";
-            if(sharedPreferences.getBoolean("toggleCloudStore", false)) {
+            if (sharedPreferences.getBoolean("toggleCloudStore", false)) {
                 cloudStorageState = "On";
                 item.setIcon(R.drawable.cloud_computing_enabled_data);  // Switch to icon two
             } else {
@@ -1439,7 +1449,7 @@ public class MainActivity extends AppCompatActivity {
             }
             isIconOne = !isIconOne;
 
-            Toast.makeText(this, "Cloud storage: "+cloudStorageState, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Cloud storage: " + cloudStorageState, Toast.LENGTH_SHORT).show();
             return true;
         }
 
@@ -1455,6 +1465,53 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.invalidateExpenses) {
+
+            String date = expenseDbHelper.findMinExpDate();
+            if(date == null || date == "") {
+                Toast.makeText(this, "Date is invalid", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            List<String> dates = getDatesFromNextDayToTodayMain(date);
+
+            dates.forEach(currDate -> {
+
+                Cursor res = expenseDbHelper.checkIfExpenseExists(currDate);
+                if (res != null && res.getCount() > 0) {
+                    while (res.moveToNext()) {
+                        int expId = res.getInt(0);
+                        String expPart = res.getString(1);
+                        int expAmount = res.getInt(2);
+                        String expDateTime = res.getString(3);
+                        String expDate = res.getString(4);
+
+
+                        LocalDate yesterDays = LocalDate.now();
+                        if (StringUtils.isNotEmpty(currDate)) {
+                            LocalDate dateParsed = LocalDate.parse(currDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                            yesterDays = dateParsed.minusDays(1);
+                        }
+
+                        long yesterdaysBalanceUpdated = expenseDbHelper.getYesterdaysBalance(String.valueOf(yesterDays));
+                        long todaysSalesUpdated = dbHelper.getTodaysSales(currDate);
+                        long balanceUpdated = (yesterdaysBalanceUpdated + todaysSalesUpdated) - ((long) expAmount);
+
+                        long rowsAffected = expenseDbHelper.updateExpenseYesterdaysBalanceAndSales(expId, expDate, yesterdaysBalanceUpdated, todaysSalesUpdated, balanceUpdated);
+
+                        // Check if the update was successful
+                        if (rowsAffected > 0) {
+                            Toast.makeText(this, "Record updated successfully " + expId, Toast.LENGTH_SHORT).show();
+                            Expense exp = new Expense(expId, expPart, expAmount, expDateTime, expDate, (int) yesterdaysBalanceUpdated, (int) todaysSalesUpdated, (int) balanceUpdated);
+                            saveExpenseOnCloud(this, expDate, exp);
+                        } else {
+                            Toast.makeText(this, expId + " Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
+                        }
+
+                    }
+                }
+            });
+            return true;
+        }
 
 
 //        if (id == R.id.action_load_from_file) {
@@ -1472,6 +1529,84 @@ public class MainActivity extends AppCompatActivity {
         // Handle other action bar items...
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void restoreFromBackedUpExpensesCsv() throws IOException {
+        List<Expense> expenses = new ArrayList<>();
+
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+        String filePath = path + File.separator + "ExpensesBackup.csv";
+
+        File docsDir = new File(filePath);
+
+        if (!docsDir.exists()) {
+            Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
+        }
+
+
+        // Read CSV file
+        BufferedReader reader = new BufferedReader(new FileReader(docsDir));
+        String line;
+        boolean firstLine = true;
+        int counter = 0;
+        while ((line = reader.readLine()) != null) {
+//            if (firstLine) {
+//                firstLine = false; // Skip header line
+//                continue;
+//            }
+
+            // Split CSV by commas, handling JSON strings with quotes
+            String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+
+            if (columns.length >= 8) {
+                int expId = Integer.parseInt(columns[0].trim());
+                String expPart = columns[1].trim();
+                int expAmt = Integer.parseInt(columns[2].trim());
+                String expCreatedDateTime = columns[3].trim();
+                String expCreatedDate = columns[4].trim();
+                int expYesterdaysBalance = Integer.parseInt(columns[5].trim());
+                int expSales = Integer.parseInt(columns[6].trim());
+                int expBalance = Integer.parseInt(columns[7].trim());
+
+                expPart = expPart.replace("\"", "");
+
+                Expense expense = new Expense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
+
+                boolean isInserted = expenseDbHelper.insertExpense(null, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
+
+                if (isInserted) {
+                    ++counter;
+                    //save expense on cloud
+                    saveExpenseOnCloud(this, expense.getExpenseDate(), expense);
+
+
+                }
+
+            }
+        }
+        Toast.makeText(this, "[Expenses] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
+        reader.close();
+
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private List<String> getDatesFromNextDayToTodayMain(String inputDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate startDate = LocalDate.parse(inputDate, formatter).plusDays(1); // Start from next day
+
+        String maxDate = expenseDbHelper.getMaxDateFromExpenses();
+        LocalDate today = LocalDate.parse(maxDate, formatter);
+
+
+        List<String> dateList = new ArrayList<>();
+        while (!startDate.isAfter(today)) {
+            dateList.add(startDate.format(formatter));
+            startDate = startDate.plusDays(1);
+        }
+
+        return dateList;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -1493,7 +1628,7 @@ public class MainActivity extends AppCompatActivity {
         BufferedReader reader = new BufferedReader(new FileReader(docsDir));
         String line;
         boolean firstLine = true;
-        int counter =0;
+        int counter = 0;
         while ((line = reader.readLine()) != null) {
 //            if (firstLine) {
 //                firstLine = false; // Skip header line
@@ -1514,15 +1649,14 @@ public class MainActivity extends AppCompatActivity {
                 dtoJson.setCreateddtm(createdDateTime);
                 dtoJson.setDate(createdDate);
 
-                long newRowId = dbHelper.saveInvoiceTransaction(itemListJson,total, MainActivity.this, dtoJson, invoiceId);
-                if(newRowId != -1) {
+                long newRowId = dbHelper.saveInvoiceTransaction(itemListJson, total, MainActivity.this, dtoJson, invoiceId);
+                if (newRowId != -1) {
                     ++counter;
                 }
             }
         }
-        Toast.makeText(this, "Restored "+counter+" rows", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "[Invoices] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
         reader.close();
-
 
 
     }
@@ -1541,20 +1675,20 @@ public class MainActivity extends AppCompatActivity {
         List<CustomItem> csvItemsList = new ArrayList<>();
         loadItemsFromInteralStorage(csvItemsList, csvFileName);
 
-        View csvViewLayout = getLayoutInflater().inflate(R.layout.csv_item_list, null , false);
+        View csvViewLayout = getLayoutInflater().inflate(R.layout.csv_item_list, null, false);
         ListView csvListView = csvViewLayout.findViewById(R.id.csvListView);
         EditText etCsvItemName = csvViewLayout.findViewById(R.id.etCsvItemName);
         Button btnAddCsvItem = csvViewLayout.findViewById(R.id.btnAddCsvItem);
 
         etCsvItemName.requestFocus();
 
-        CsvAdapter csvAdapter= new CsvAdapter(this, csvItemsList);
+        CsvAdapter csvAdapter = new CsvAdapter(this, csvItemsList);
         csvListView.setAdapter(csvAdapter);
 
         btnAddCsvItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(etCsvItemName!=null && StringUtils.isNotEmpty(etCsvItemName.getText())
+                if (etCsvItemName != null && StringUtils.isNotEmpty(etCsvItemName.getText())
                         && !StringUtils.isNumeric(etCsvItemName.getText())) {
                     String csvItemName = etCsvItemName.getText().toString();
                     csvItemsList.add(new CustomItem(csvItemName, false, 0));
@@ -1565,8 +1699,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-
 
 
         builder.setView(csvViewLayout);
@@ -1651,7 +1783,7 @@ public class MainActivity extends AppCompatActivity {
 
             adapter.notifyDataSetChanged();
         } catch (IOException e) {
-            Toast.makeText(this, "Error :"+e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error :" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
 
@@ -1688,7 +1820,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
 
-                if(etAddItem != null && !etAddItem.getText().toString().isEmpty()
+                if (etAddItem != null && !etAddItem.getText().toString().isEmpty()
 //                        && etItemPrice != null && !etItemPrice.getText().toString().isEmpty()
                 ) {
                     String itemName = etAddItem.getText().toString();
@@ -1770,13 +1902,437 @@ public class MainActivity extends AppCompatActivity {
 
     private void reloadMainAcitivyItems(MenuItem item) {
 //        openAlerDialogForWritingItems(item);
-        loadItemsFromFile(itemList,item);
+        loadItemsFromFile(itemList, item);
         adapter.notifyDataSetChanged();
     }
 
     private void callReport() {
-        Intent intent = new Intent(this, ReportActivity.class);
-        startActivity(intent);
+        // DO NOT REMOVE BELOW LINES  ***
+        // ** Either Call below activity or enable showReportsDialog() method  //
+
+//        Intent intent = new Intent(this, ReportActivity.class);
+//        startActivity(intent);
+
+        showReportsDialog();
+
+
+    }
+
+    private void showReportsDialog() {
+
+
+        DatabaseHelper dbHelper;
+        Button getBtn;
+        TextView tvStartDate, tvEndDate;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Reports");
+        builder.setIcon(R.drawable.ic_report);
+        final View customView = getLayoutInflater().inflate(R.layout.activity_report, null);
+
+
+        dbHelper = new DatabaseHelper(this);
+        getBtn = customView.findViewById(R.id.getBtn);
+        tvStartDate = customView.findViewById(R.id.tvStartDate);
+        tvEndDate = customView.findViewById(R.id.tvEndDate);
+        Spinner spinnerSelectPeriod = customView.findViewById(R.id.selectPeriod);
+        pd = new ProgressDialog(this);
+        String[] items = {"select option", "Last month", "Last 3 months", "Last 6 months", "Last 1 year", "Custom"};
+
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, items);
+
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
+        adapter.getView(0, null, null).setEnabled(false);
+
+        spinnerSelectPeriod.setAdapter(adapter);
+
+        spinnerSelectPeriod.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (parent.getSelectedItem().equals("Custom")) {
+                    tvStartDate.setVisibility(View.VISIBLE);
+                    tvEndDate.setVisibility(View.VISIBLE);
+                    tvStartDate.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            showDateTimeDialog();
+                        }
+
+                        private void showDateTimeDialog() {
+                            final Calendar currentDate = Calendar.getInstance();
+                            final Calendar date = Calendar.getInstance();
+
+                            new DatePickerDialog(MainActivity.this, new DatePickerDialog.OnDateSetListener() {
+                                @Override
+                                public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                                    date.set(year, month, dayOfMonth);
+                                    tvStartDate.setText(android.text.format.DateFormat.format("dd-MM-yyyy", date));
+                                }
+                            }, currentDate.get(Calendar.YEAR), currentDate.get(Calendar.MONTH), currentDate.get(Calendar.DATE)).show();
+                        }
+                    });
+
+                    tvEndDate.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            showDateTimeDialog();
+                        }
+
+                        private void showDateTimeDialog() {
+                            final Calendar currentDate = Calendar.getInstance();
+                            final Calendar date = Calendar.getInstance();
+
+                            new DatePickerDialog(MainActivity.this, new DatePickerDialog.OnDateSetListener() {
+                                @Override
+                                public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                                    date.set(year, month, dayOfMonth);
+                                    tvEndDate.setText(android.text.format.DateFormat.format("dd-MM-yyyy", date));
+
+                                }
+                            }, currentDate.get(Calendar.YEAR), currentDate.get(Calendar.MONTH), currentDate.get(Calendar.DATE)).show();
+                        }
+                    });
+
+                } else {
+                    tvStartDate.setVisibility(View.GONE);
+                    tvEndDate.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+
+        getBtn.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void onClick(View v) {
+                String selecteditem = (String) spinnerSelectPeriod.getSelectedItem();
+                if (selecteditem.equalsIgnoreCase("Last month")) {
+                    processDateRangeGenerateReport(30);
+                } else if (selecteditem.equalsIgnoreCase("Last 3 months")) {
+                    processDateRangeGenerateReport(90);
+                } else if (selecteditem.equalsIgnoreCase("Last 6 months")) {
+                    processDateRangeGenerateReport(180);
+                } else if (selecteditem.equalsIgnoreCase("Last 1 year")) {
+                    processDateRangeGenerateReport(365);
+                } else if (selecteditem.equalsIgnoreCase("Custom")) {
+
+                    if (tvStartDate != null && !tvStartDate.getText().equals("Start Date Here")
+                            && tvEndDate != null && !tvEndDate.getText().equals("End Date Here")) {
+                        String startDateFormatted = getParsedDate(tvStartDate.getText().toString());
+                        String endDateFormatted = getParsedDate(tvEndDate.getText().toString());
+
+                        //                    int total = 0;
+                        Cursor cursor = dbHelper.getPeriodRecords(startDateFormatted, endDateFormatted);
+
+                        Map<String, Integer> map = new HashMap<>();
+                        if (cursor.getCount() > 0) {
+                            while (cursor.moveToNext()) {
+                                double itemVal = 0.0d;
+                                String jsonItemList = cursor.getString(1);
+                                total += cursor.getInt(2);
+                                List<CustomItem> itemList = getParserJsonList(jsonItemList);
+                                for (CustomItem customItem : itemList) {
+                                    if (map.containsKey(customItem.getName())) {
+                                        itemVal = map.get(customItem.getName()) + (int) customItem.getSliderValue();
+                                    } else {
+                                        itemVal = (int) customItem.getSliderValue();
+                                    }
+                                    map.put(customItem.getName(), (int) itemVal);
+                                    itemVal = 0.0d;
+                                }
+                            }
+                            System.err.println("map: " + map);
+                            AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
+                            builder1.setCancelable(false);
+                            builder1.setTitle("Color or B&W pdf ? ");
+                            builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    generateReportPdf(startDateFormatted, endDateFormatted, map, total, true);
+                                    total = 0;
+                                }
+                            });
+                            builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    generateReportPdf(startDateFormatted, endDateFormatted, map, total, false);
+                                    total = 0;
+                                }
+                            });
+
+                            AlertDialog dialog1 = builder1.create();
+                            dialog1.show();
+                        } else {
+                            View rootView = findViewById(android.R.id.content);
+                            Snackbar.make(rootView, "No data to show !", Snackbar.LENGTH_LONG)
+                                    .setDuration(5000)
+                                    .setAction("Close", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                        }
+                                    })
+                                    .show();
+                        }
+                    }
+                }
+            }
+
+            private String getParsedDate(String dateStr) {
+                SimpleDateFormat dateFormatSource = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+                SimpleDateFormat dateFormatTarget = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                try {
+                    Date parsedDate = dateFormatSource.parse(dateStr);
+                    String formattedDate = dateFormatTarget.format(parsedDate);
+                    return formattedDate;
+                } catch (ParseException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        builder.setCancelable(false);
+        builder.setView(customView);
+
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void generateReportPdf(String oldDateVal, String newDateVal, Map<String, Integer> map, int total, boolean colorFul) {
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+
+        try {
+            String pdfPathMain = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+            String pdfPath = pdfPathMain + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "reports";
+
+            if (!Files.exists(Paths.get(pdfPath))) {
+                new File(pdfPath).mkdirs();
+            }
+
+            LocalDateTime localDateTime = LocalDateTime.now();
+            String frmtted = localDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+
+            File pdfFile = new File(pdfPath, "invoice_report_" + frmtted + ".pdf");
+            PdfWriter writer = new PdfWriter(new FileOutputStream(pdfFile));
+            PdfDocument pdfDocument = new PdfDocument(writer);
+            Document document = new Document(pdfDocument);
+
+
+            // Add title
+            Paragraph title = new Paragraph("Invoice Report")
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setFontSize(20)
+                    .setBold();
+            document.add(title);
+
+            // Load the image from assets
+            AssetManager assetManager = getApplicationContext().getAssets();
+            InputStream inputStream = assetManager.open("analytics (1).png");
+            byte[] imageBytes = new byte[inputStream.available()];
+            inputStream.read(imageBytes);
+            inputStream.close();
+
+            ImageData imageData = ImageDataFactory.create(imageBytes);
+            Image image = new Image(imageData);
+            image.setWidth(30);
+            image.setHeight(30);
+            // Add the image to the document
+            document.add(image);
+
+
+            // Add customer details
+            Paragraph customerDetails = new Paragraph()
+                    .add("From  " + oldDateVal + " to " + newDateVal + "\n")
+                    .add("Total sales in (Rs) : " + total + "\n\n");
+            document.add(customerDetails);
+
+            // Add table for items
+            Table table = new Table(UnitValue.createPercentArray(new float[]{2, 1, 1, 1}))
+                    .useAllAvailableWidth();
+
+            table.setTextAlignment(TextAlignment.CENTER);
+
+
+            if (colorFul) {
+                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Item Description")).setBackgroundColor(headerColor));
+                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Rate")).setBackgroundColor(headerColor));
+                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Quantity")).setBackgroundColor(headerColor));
+                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Amount")).setBackgroundColor(headerColor));
+
+            } else {
+                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Item Description")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Rate")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Quantity")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Amount")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+            }
+
+
+            if (map != null) {
+                int index = 0;
+
+                for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                    boolean isOdd = index++ % 2 == 1;
+                    if (colorFul) {
+                        if (isOdd) {
+                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(entry.getKey()))));
+                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
+                            Integer qty = entry.getValue();
+                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(price))));
+                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(qty))));
+                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(price * qty))));
+                        } else {
+                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(entry.getKey()))));
+                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
+                            Integer qty = entry.getValue();
+                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(price))));
+                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(qty))));
+                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(price * qty))));
+                        }
+                    } else {
+                        table.addCell(new Cell().add(new Paragraph(String.valueOf(entry.getKey()))));
+                        Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
+                        Integer qty = entry.getValue();
+                        table.addCell(new Cell().add(new Paragraph(String.valueOf(price))));
+                        table.addCell(new Cell().add(new Paragraph(String.valueOf(qty))));
+                        table.addCell(new Cell().add(new Paragraph(String.valueOf(price * qty))));
+                    }
+                }
+            }
+
+            if (colorFul) {
+                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
+                table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph("Total")).setBackgroundColor(headerColor));
+                table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(headerColor));
+            } else {
+                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
+                table.addFooterCell(new Cell().setBold().add(new Paragraph("Total")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+                table.addFooterCell(new Cell().setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+            }
+
+
+            document.add(table);
+
+            Paragraph footerDate = new Paragraph()
+                    .add("\nReport generated on " + new SimpleDateFormat("dd-MM-yyyy hh:mm:ss a").format(new Date()) + "\n");
+
+            document.add(footerDate);
+
+
+//            // Add total
+//            Paragraph total = new Paragraph("Total: " + dtoJson.getTotal())
+//                    .setTextAlignment(TextAlignment.RIGHT)
+//                    .setFontSize(15)
+//                    .setBold();
+//            document.add(total);
+
+            document.close();
+            writer.close();
+            openGeneratedPDF(pdfFile);
+
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<CustomItem> getParserJsonList(String jsonItemList) {
+
+        JsonObject jsonObject = (new JsonParser()).parse(jsonItemList).getAsJsonObject();
+        JsonArray listArr = jsonObject.getAsJsonArray("itemList");
+        JsonArray listOtherArr = jsonObject.getAsJsonArray("otherItemsList");
+        Gson gson = new Gson();
+        Type listType = new TypeToken<List<CustomItem>>() {
+        }.getType();
+        List<CustomItem> itemList = gson.fromJson(listArr, listType);
+        List<CustomItem> otherItemList = gson.fromJson(listOtherArr, listType);
+        itemList.addAll(otherItemList);
+        return itemList;
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void processDateRangeGenerateReport(int noOfDays) {
+        LocalDate date = LocalDate.now();
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, date.getYear());
+        calendar.set(Calendar.MONTH, date.getMonthValue() - 1);
+        calendar.set(Calendar.DAY_OF_MONTH, date.getDayOfMonth());
+        calendar.add(Calendar.DAY_OF_MONTH, -noOfDays);
+        Date newDate = calendar.getTime();
+
+
+        String oldDateVal = new SimpleDateFormat("yyyy-MM-dd").format(newDate);
+        String newDateVal = String.valueOf(date);
+
+
+        Cursor cursor = dbHelper.getPeriodRecords(oldDateVal, newDateVal);
+        double itemVal = 0.0d;
+        Map<String, Integer> map = new HashMap<>();
+        if (cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                itemVal = 0.0d;
+                String jsonItemList = cursor.getString(1);
+                total += cursor.getInt(2);
+                List<CustomItem> itemList = getParserJsonList(jsonItemList);
+                for (CustomItem customItem : itemList) {
+                    itemVal += Double.valueOf(customItem.getSliderValue());
+                    map.put(customItem.getName(), (int) itemVal);
+                    itemVal = 0.0d;
+                }
+            }
+
+            AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
+            builder1.setCancelable(false);
+            builder1.setTitle("Color or B&W pdf ? ");
+            builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    generateReportPdf(oldDateVal, newDateVal, map, total, true);
+                    total = 0;
+                }
+            });
+            builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    generateReportPdf(oldDateVal, newDateVal, map, total, false);
+                    total = 0;
+                }
+            });
+
+            AlertDialog dialog1 = builder1.create();
+            dialog1.show();
+
+
+        } else {
+            View rootView = findViewById(android.R.id.content);
+            Snackbar.make(rootView, "No data to show !", Snackbar.LENGTH_LONG)
+                    .setDuration(5000)
+                    .setAction("Close", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                        }
+                    })
+                    .show();
+        }
     }
 
     private void callTest() {
@@ -1813,6 +2369,18 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
 
+                database.getReference("expenses").child("/").removeValue()
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                pd.dismiss();
+                                Toast.makeText(MainActivity.this, "Cloud database deleted", Toast.LENGTH_LONG).show();
+                            } else {
+                                pd.dismiss();
+                                Toast.makeText(MainActivity.this, "Failed to delete cloud data", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+
+
             }
         });
 
@@ -1841,7 +2409,7 @@ public class MainActivity extends AppCompatActivity {
         Intent emailIntent = new Intent(Intent.ACTION_SEND);
         emailIntent.setType("text/csv");
         emailIntent.putExtra(Intent.EXTRA_EMAIL, InvoiceConstants.EMAIL_RECIPIENTS);
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoices Backup "+ new SimpleDateFormat("dd-MM-yyyy hh:mm a").format(new Date()));
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoices Backup " + new SimpleDateFormat("dd-MM-yyyy hh:mm a").format(new Date()));
 //        emailIntent.putExtra(Intent.EXTRA_TEXT, "Email body text");
 
 
@@ -1875,7 +2443,7 @@ public class MainActivity extends AppCompatActivity {
         Toast toast = new Toast(getApplicationContext());
         toast.setDuration(Toast.LENGTH_SHORT);
         toast.setView(layout);
-        toast.setGravity(Gravity.TOP|Gravity.CENTER,toast.getXOffset(), toast.getYOffset());
+        toast.setGravity(Gravity.TOP | Gravity.CENTER, toast.getXOffset(), toast.getYOffset());
         toast.show();
     }
 

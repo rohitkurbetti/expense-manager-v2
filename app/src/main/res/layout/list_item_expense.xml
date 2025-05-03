@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="10dp">
+    android:padding="4dp">
 
     <CheckBox
         android:id="@+id/checkBoxExpenseId"
@@ -70,12 +70,13 @@
                 android:text="Created DateTime"
                 android:textSize="12sp"/>
 
-            <!--<TextView
-                android:id="@+id/txtExpCreatedDate"
+            <TextView
+                android:visibility="gone"
+                android:id="@+id/txtSales"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Created Date"
-                android:textSize="12sp"/>-->
+                android:text="Sales"
+                android:textSize="12sp"/>
 
             <TextView
                 android:id="@+id/txtExpBalance"
@@ -92,6 +93,7 @@
 
     <LinearLayout
         android:visibility="gone"
+        android:id="@+id/expenseDetailsLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"

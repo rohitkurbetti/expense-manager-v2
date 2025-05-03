@@ -4,11 +4,13 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -174,7 +176,10 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
 
     private void deleteMonthdata(String yearName, String monthName) {
 
-        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("invoices");
+        SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"invoices");
         databaseReference.child("/"+yearName+"/"+monthName).removeValue()
                 .addOnSuccessListener(unused -> {
                     Toast.makeText(context, "Data deleted successfully", Toast.LENGTH_SHORT).show();
@@ -290,7 +295,7 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
 
         pdfDocument.finishPage(page);
 
-        File folder = new File(Environment.getExternalStorageDirectory()+"/"+Environment.DIRECTORY_DOWNLOADS + "/Gajanan coldrink house");
+        File folder = new File(Environment.getExternalStorageDirectory()+"/"+Environment.DIRECTORY_DOCUMENTS + "/Gajanan Coldrink House/Reports");
 
         if(!folder.exists()) {
             folder.mkdirs();

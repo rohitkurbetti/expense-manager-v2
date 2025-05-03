@@ -1,22 +1,33 @@
 package com.example.myapplication.database;
 
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 
 import android.content.ContentValues;
+import android.os.Build;
 import android.util.Log;
 
 import com.example.myapplication.ExpenseActivity;
 import com.example.myapplication.ExpenseRecyclerView;
 import com.example.myapplication.ExpenseRecyclerViewAdapter;
 import com.example.myapplication.adapters.Expense;
+import com.example.myapplication.dtos.Invoice;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ExpenseDbHelper extends SQLiteOpenHelper {
 
@@ -31,9 +42,11 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
     public static final String COLUMN_YESTERDAYS_BALANCE = "yesterdaysBalance";
     public static final String COLUMN_SALES = "sales";
     public static final String COLUMN_BALANCE = "balance";
+    private final Context context;
 
     public ExpenseDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.context = context;
     }
 
     @Override
@@ -241,6 +254,138 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_EXPENSES, null, null);
         db.close();
+    }
+
+    public List<String> checkForMissingExpenses() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        List<String> missingExpDates = new ArrayList<>();
+        String query = "SELECT "+ COLUMN_DATE +" FROM " + TABLE_EXPENSES + " where yesterdaysBalance <= 0 ";
+        Cursor cursor = db.rawQuery(query, null);
+        if(cursor.getCount()>0) {
+            while (cursor.moveToNext()) {
+                missingExpDates.add(cursor.getString(0));
+            }
+        }
+        return missingExpDates;
+    }
+
+    public List<Expense> getAllExpenseParsedList() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM "+ TABLE_EXPENSES + " order by id desc";
+        Cursor cursor = db.rawQuery(query, null);
+
+        List<Expense> expenseList = new ArrayList<>();
+
+        if(cursor!=null && cursor.getCount()>0) {
+            while (cursor.moveToNext()) {
+
+                int id = cursor.getInt(0);
+                String part = cursor.getString(1);
+                int expAmount = cursor.getInt(2);
+                String expDateTime = cursor.getString(3);
+                String expDate = cursor.getString(4);
+                int yesterdaysBalance = cursor.getInt(5);
+                int sales = cursor.getInt(6);
+                int balance = cursor.getInt(7);
+
+                expenseList.add(new Expense(id, part, expAmount, expDateTime, expDate, yesterdaysBalance, sales, balance));
+
+            }
+        }
+        return expenseList;
+    }
+
+    public List<String> getMissingInvoicesParsedList() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        List<String> missingExpDates = new ArrayList<>();
+        String query = "SELECT "+ COLUMN_DATE +" FROM " + TABLE_EXPENSES + " where sales = 0 ";
+        Cursor cursor = db.rawQuery(query, null);
+        if(cursor.getCount()>0) {
+            while (cursor.moveToNext()) {
+                missingExpDates.add(cursor.getString(0));
+            }
+        }
+        return missingExpDates;
+    }
+
+    public String findMinExpDate() {
+        String minDate = null;
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT MIN("+ COLUMN_DATE +") FROM " + TABLE_EXPENSES;
+        Cursor cursor = db.rawQuery(query, null);
+        if(cursor.getCount()>0) {
+            while (cursor.moveToNext()) {
+                minDate = cursor.getString(0);
+            }
+        }
+        return minDate;
+    }
+
+    public void deleteFirestoreExpensesbyIds(List<Expense> expenseList, ProgressDialog progressDialog) {
+        progressDialog.setMessage("Deleting expenses from cloud database");
+        progressDialog.show();
+        List<Expense> selExpIds = expenseList.stream().filter(Expense::getChecked).collect(Collectors.toList());
+
+        if(!selExpIds.isEmpty()) {
+
+            selExpIds.forEach(expense -> {
+                String date = expense.getExpenseDate();
+
+                String formattedOnlyYear = formatOnlyYear(date);  // 2025
+                String formattedMonthYear = formatMonthYear(date);  // Mar-2025
+
+                SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+                String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"expenses");
+                databaseReference.child("/"+ formattedOnlyYear +"/"+ formattedMonthYear +"/"+ date +"/").removeValue()
+                        .addOnSuccessListener(unused -> {
+                            progressDialog.dismiss();
+                        })
+                        .addOnFailureListener(e -> {
+                            progressDialog.dismiss();
+                        });
+            });
+
+        } else {
+            progressDialog.dismiss();
+        }
+    }
+
+    private String formatMonthYear(String inputDate) {
+        try {
+            // Define input date format
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            // Define output format as "MMM-yyyy"
+            SimpleDateFormat outputFormat = new SimpleDateFormat("MMM-yyyy", Locale.US);
+
+            // Parse the input date
+            Date parsedDate = inputFormat.parse(inputDate);
+
+            // Format and return the result
+            return outputFormat.format(parsedDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "Invalid Date";
+        }
+    }
+
+    private String formatOnlyYear(String inputDate) {
+        try {
+            // Define input date format
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            // Define output format as "MMM-yyyy"
+            SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy", Locale.US);
+
+            // Parse the input date
+            Date parsedDate = inputFormat.parse(inputDate);
+
+            // Format and return the result
+            return outputFormat.format(parsedDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "Invalid Date";
+        }
     }
 }
 
