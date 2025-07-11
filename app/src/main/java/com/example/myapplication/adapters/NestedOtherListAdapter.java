@@ -60,11 +60,13 @@ public class NestedOtherListAdapter extends BaseAdapter {
         TextView nestedItemTitle = convertView.findViewById(R.id.nestedItemTitle);
         TextView nestedItemExpense = convertView.findViewById(R.id.nestedItemExpense);
         TextView nestedItemExpensePer = convertView.findViewById(R.id.nestedItemExpensePer);
+        TextView nestedItemExpenseAmount = convertView.findViewById(R.id.nestedItemExpenseAmount);
         ImageButton btnDeleteDateEntry = convertView.findViewById(R.id.btnDeleteDateEntry);
 
         nestedItemTitle.setText(nestedOtherItemList.get(position).getName());
-        nestedItemExpense.setText(String.valueOf((int) nestedOtherItemList.get(position).getSliderValue()));
+        nestedItemExpense.setText("("+(int) nestedOtherItemList.get(position).getSliderValue()+")");
         nestedItemExpensePer.setText(String.valueOf(nestedOtherItemList.get(position).getAmount()));
+        nestedItemExpenseAmount.setText("\u20B9"+nestedOtherItemList.get(position).getAmount());
 
 //        // Handle button click event
 //        convertView.setOnClickListener(v -> {

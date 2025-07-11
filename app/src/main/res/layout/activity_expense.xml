@@ -52,6 +52,14 @@
             android:text="Save Expense"
             android:layout_marginTop="16dp"/>
 
+        <Button
+            android:id="@+id/getExpenses"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Get Expenses"
+            android:layout_marginTop="16dp"/>
+
+
         <LinearLayout
             android:layout_marginTop="16dp"
             android:orientation="horizontal"

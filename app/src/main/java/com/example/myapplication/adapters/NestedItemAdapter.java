@@ -2,6 +2,8 @@ package com.example.myapplication.adapters;
 
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,8 +18,12 @@ import android.widget.TextView;
 import com.example.myapplication.R;
 import com.example.myapplication.dtos.DtoJsonEntity;
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -52,6 +58,7 @@ public class NestedItemAdapter extends ArrayAdapter<DtoJsonEntity> {
 
         CheckBox delNestedItemCheckBox = convertView.findViewById(R.id.delNestedItemCheckBox);
         ImageView iconViewNested = convertView.findViewById(R.id.iconViewNested);
+        TextView iconCircle = convertView.findViewById(R.id.iconCircle);
         TextView titleTextView = convertView.findViewById(R.id.textViewParticulars);
         TextView amountTextView = convertView.findViewById(R.id.textViewAmount);
         TextView descriptionTextView = convertView.findViewById(R.id.textViewCategory);
@@ -64,6 +71,19 @@ public class NestedItemAdapter extends ArrayAdapter<DtoJsonEntity> {
         titleTextView.setText(currentItem.getName());
         amountTextView.setText(String.valueOf("\u20B9"+currentItem.getTotal()));
         descriptionTextView.setText("x"+currentItem.getQty());
+
+        String name = currentItem.getName();
+
+        if (name != null && !name.isEmpty()) {
+            iconCircle.setText(String.valueOf(name.charAt(0)).toUpperCase());
+        }
+
+        // Create circular shape with random color
+        GradientDrawable circleDrawable = new GradientDrawable();
+        circleDrawable.setShape(GradientDrawable.OVAL);
+        circleDrawable.setColor(getRandomMaterialColor());
+        iconCircle.setBackground(circleDrawable);
+
 
 //        delNestedItemCheckBox.setChecked(checkedStates.get(position));
 
@@ -87,5 +107,23 @@ public class NestedItemAdapter extends ArrayAdapter<DtoJsonEntity> {
 
         return convertView;
     }
+
+    private int getRandomMaterialColor() {
+        Random random = new Random();
+        List<Integer> colorList = Arrays.asList(
+                Color.parseColor("#F44336"), // Red
+                Color.parseColor("#E91E63"), // Pink
+                Color.parseColor("#9C27B0"), // Purple
+                Color.parseColor("#3F51B5"), // Indigo
+                Color.parseColor("#03A9F4"), // Light Blue
+                Color.parseColor("#009688"), // Teal
+                Color.parseColor("#4CAF50"), // Green
+                Color.parseColor("#FF9800"), // Orange
+                Color.parseColor("#795548"), // Brown
+                Color.parseColor("#607D8B")  // Blue Grey
+        );
+        return colorList.get(random.nextInt(colorList.size()));
+    }
+
 
 }

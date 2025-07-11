@@ -12,6 +12,10 @@ public class Expense {
     private Integer balance;
     private Boolean isChecked = false;
 
+    public Expense() {
+        // Required empty constructor for Firebase
+    }
+
     public Expense(Integer id, String expensePart, Integer expenseAmount, String expenseDateTime, String expenseDate, Integer yesterdaysBalance, Integer sales, Integer balance) {
         this.id = id;
         this.expensePart = expensePart;

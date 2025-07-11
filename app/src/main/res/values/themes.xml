@@ -17,7 +17,7 @@
         <!-- Text color for primary content -->
         <item name="android:textColorPrimary">@android:color/black</item>
         <!-- Text color for secondary content -->
-        <item name="android:textColorSecondary">#FFFFFF</item>
+        <item name="android:textColorSecondary">@color/common_google_signin_btn_text_light</item>
         <!-- Other theme attributes -->
     </style>
 

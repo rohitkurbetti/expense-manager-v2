@@ -164,7 +164,7 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public Cursor getAllExpenses() {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by id desc ", null);
+        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by "+COLUMN_DATE+" desc ", null);
     }
 
 

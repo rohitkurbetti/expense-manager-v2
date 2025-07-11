@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -41,6 +42,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class InvoiceAdapter extends BaseAdapter {
     private Context context;
@@ -88,13 +90,13 @@ public class InvoiceAdapter extends BaseAdapter {
 
         Invoice invoice = invoiceList.get(position);
 
-        txtInvoiceId.setText("Invoice ID: " + invoice.getInvoiceId());
+        txtInvoiceId.setText("Invoice " + invoice.getInvoiceId());
 //        txtItemList.setText(invoice.getFormattedItemList());
-        txtTotal.setText("Total: \u20B9" + invoice.getTotal());
-        txtCreatedDateTime.setText("Created: " + invoice.getCreatedDateTime());
-        txtCreatedDate.setText("Date: " + invoice.getCreatedDate());
+        txtTotal.setText("\u20B9" + (int) invoice.getTotal());
+//        txtCreatedDateTime.setText("Created " + invoice.getCreatedDateTime());
+        txtCreatedDate.setText("Date " + invoice.getCreatedDate());
 
-        Map<String, Integer> itemSaleMap = invoice.getItemSaleMap();
+        Map<String, Integer[]> itemSaleMap = invoice.getItemSaleMap();
 
         invoiceGeneratorBtn.setOnClickListener(v -> {
 
@@ -115,6 +117,39 @@ public class InvoiceAdapter extends BaseAdapter {
 
         checkBoxInvoiceId.setChecked(invoice.getChecked());
 
+        CheckBox selAllInvCheckBox = selectionOverlay.findViewById(R.id.selectAllInvoiceCheckBox);
+
+        selAllInvCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                if(isChecked) {
+                    List<Invoice> checkedList = invoiceList.stream().map(inv -> {
+                        inv.setChecked(true);
+                        return inv;
+                    }).collect(Collectors.toList());
+
+                    invoiceList.clear();
+                    invoiceList = checkedList;
+                    notifyDataSetChanged();
+                } else {
+                    List<Invoice> checkedList = invoiceList.stream().map(inv -> {
+                        inv.setChecked(false);
+                        return inv;
+                    }).collect(Collectors.toList());
+
+                    invoiceList.clear();
+                    invoiceList = checkedList;
+                    selectionOverlay.setVisibility(View.GONE);
+                    notifyDataSetChanged();
+                }
+
+            }
+        });
+
+
+
+
         checkBoxInvoiceId.setOnCheckedChangeListener((v, isChecked) -> {
             if(isChecked) {
                 invoice.setChecked(true);
@@ -134,6 +169,7 @@ public class InvoiceAdapter extends BaseAdapter {
 
             long checkedCInvoicesCount = invoiceList.stream().filter(Invoice::getChecked).count();
             InvoicesFragment.itemSelectedTxt.setText(checkedCInvoicesCount+" Items selected");
+
         });
 
         return convertView;
@@ -166,18 +202,22 @@ public class InvoiceAdapter extends BaseAdapter {
         return itemList;
     }
 
-    private void invoiceDetails(Map<String, Integer> itemSaleMap) {
+    private void invoiceDetails(Map<String, Integer[]> itemSaleMap) {
 
         List<Item> items = new ArrayList<>();
 
-        for(Map.Entry<String, Integer> entry : itemSaleMap.entrySet()) {
+        for(Map.Entry<String, Integer[]> entry : itemSaleMap.entrySet()) {
             String itemName = entry.getKey();
-            int itemQty = entry.getValue();
+            int itemRate = entry.getValue()[0];
+            int itemQty = entry.getValue()[1];
 
             int amount = InvoiceConstants.ITEM_PRICE_MAP.containsKey(itemName.toUpperCase()) ?
                     itemQty * InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(itemName.toUpperCase(), 0) :
-                    0;
+                    itemRate;
 
+            if(amount==0) {
+                amount = itemRate * itemQty;
+            }
 
             items.add(new Item(itemName, itemQty, amount));
         }
@@ -196,11 +236,21 @@ public class InvoiceAdapter extends BaseAdapter {
         TextView popupTitle = dialogView.findViewById(R.id.popupTitle);
         TextView tvItemDatePopup = dialogView.findViewById(R.id.tvItemDatePopup);
         TextView tvItemTotalPopup = dialogView.findViewById(R.id.tvItemTotalPopup);
+        TextView totalTextView = dialogView.findViewById(R.id.totalTextView);
+        TextView grandTotalTextView = dialogView.findViewById(R.id.grandTotalTextView);
+        LinearLayout grandTotalLinearLayout = dialogView.findViewById(R.id.grandTotalLinearLayout);
 
         popupTitle.setText("Invoice Details Breakdown");
         subTitleLinearLayout.setVisibility(View.GONE);
         tvItemDatePopup.setVisibility(View.GONE);
         tvItemTotalPopup.setVisibility(View.GONE);
+        grandTotalTextView.setVisibility(View.VISIBLE);
+        totalTextView.setVisibility(View.VISIBLE);
+        grandTotalLinearLayout.setVisibility(View.VISIBLE);
+
+        int gTotal = items.stream().mapToInt(i -> i.getItemAmount()).sum();
+
+        grandTotalTextView.setText(String.valueOf("  \u20B9"+gTotal));
 
         Button btnClose = dialogView.findViewById(R.id.btnClosePopup);
 

@@ -1,6 +1,7 @@
 package com.example.myapplication.adapters;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,12 +25,16 @@ public class NestedListAdapter extends BaseAdapter {
     private Context context;
     private List<CustomItem> nestedItemList;
     private ListView nestedListView;
-
+    SharedPreferences sharedPreferences;
     public NestedListAdapter(Context context, List<CustomItem> nestedItemList, ListView nestedListView) {
         this.context = context;
         this.nestedItemList = nestedItemList;
         this.nestedListView = nestedListView;
+        sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+
     }
+
+
 
     @Override
     public int getCount() {
@@ -56,13 +61,18 @@ public class NestedListAdapter extends BaseAdapter {
         TextView nestedItemTitle = convertView.findViewById(R.id.nestedItemTitle);
         TextView nestedItemExpense = convertView.findViewById(R.id.nestedItemExpense);
         TextView nestedItemExpensePer = convertView.findViewById(R.id.nestedItemExpensePer);
+        TextView nestedItemExpenseAmount = convertView.findViewById(R.id.nestedItemExpenseAmount);
         ImageButton btnDeleteDateEntry = convertView.findViewById(R.id.btnDeleteDateEntry);
 //        CheckBox chkBoxDay = convertView.findViewById(R.id.chkBoxDay);
 
 //        NestedItem nestedItem = nestedItemList.get(position);
         nestedItemTitle.setText(nestedItemList.get(position).getName());
-        nestedItemExpense.setText(String.valueOf((int) nestedItemList.get(position).getSliderValue()));
+        nestedItemExpense.setText("("+(int) nestedItemList.get(position).getSliderValue()+")");
         nestedItemExpensePer.setText(String.valueOf(nestedItemList.get(position).getAmount()));
+
+        int itemPrice = sharedPreferences.getInt(nestedItemList.get(position).getName().toUpperCase(), 0);
+
+        nestedItemExpenseAmount.setText("\u20B9"+itemPrice * (int) nestedItemList.get(position).getSliderValue());
 
 //        // Handle button click event
 //        convertView.setOnClickListener(v -> {

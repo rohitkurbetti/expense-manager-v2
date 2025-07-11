@@ -69,6 +69,12 @@
         android:title="Get Sales Summary"
         app:showAsAction="never"
         />
+    <item
+        android:id="@+id/expenseSummary"
+        android:title="Expenses Summary"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        />
 
     <item
         android:id="@+id/resetItemCsv"
@@ -115,5 +121,18 @@
         android:orderInCategory="100"
         app:showAsAction="never"
         />
+
+
+    <item
+        android:id="@+id/chooseTheme"
+        android:orderInCategory="100"
+        android:title="Choose Theme"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/newUI"
+        android:orderInCategory="100"
+        android:title="New UI"
+        app:showAsAction="never" />
 
 </menu>

@@ -125,6 +125,38 @@
         android:tooltipText="Delete selected"
         />
 
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/grandTotalLinearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16sp">
+
+        <TextView
+            android:visibility="gone"
+            android:id="@+id/totalTextView"
+            android:layout_width="wrap_content"
+            android:textAlignment="viewStart"
+            android:textStyle="bold"
+            android:textSize="17sp"
+            android:layout_marginStart="12dp"
+            android:layout_height="wrap_content"
+            android:text="Total"
+            />
+
+        <TextView
+            android:visibility="gone"
+            android:id="@+id/grandTotalTextView"
+            android:layout_width="match_parent"
+            android:textAlignment="viewEnd"
+            android:textStyle="bold"
+            android:textSize="17sp"
+            android:layout_marginEnd="12dp"
+            android:layout_height="wrap_content"
+            android:text="Grand Total"
+            />
+    </LinearLayout>
+
     <ListView
         android:id="@+id/popupListView"
         android:layout_width="match_parent"
@@ -135,7 +167,7 @@
 
     <Button
         android:id="@+id/btnClosePopup"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="35dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Close"

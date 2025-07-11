@@ -4,15 +4,37 @@
     <color name="white">#FFFFFFFF</color>
 
 
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
 
-        <color name="colorPrimary">#3F51B5</color>
-        <color name="colorPrimaryDark">#303F9F</color>
-        <color name="colorAccent">#FF4081</color>
+    <color name="yellow1">#FFBE4F</color>
 
-        <color name="yellow1">#FFBE4F</color>
+    <color name="cyan">#FF5722</color>
+    <color name="orange">#FFB443</color>
 
-        <color name="cyan">#FF5722</color>
-        <color name="orange">#FFB443</color>
+    <color name="grid_background_stroke">#CCCCCC</color>
 
+
+    <color name="app_background">#F0F0F0</color>
+    <color name="card_background_light">#FFFFFF</color>
+    <color name="text_dark">#000000</color>
+    <color name="text_dark_secondary">#888888</color>
+    <color name="grid_button_background">#EEEEEE</color>
+    <color name="main_button_light_bg">#EEEEEE</color>
+    <color name="main_button_light_bg_pressed">#DDDDDD</color>
+
+
+    <style name="QuantityGridButton" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">35dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:background">@drawable/grid_button_background_selector</item>
+        <item name="android:layout_margin">1dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:gravity">center</item>
+    </style>
 
 </resources>

@@ -59,7 +59,7 @@
             android:layout_margin="8dp"
             android:focusable="false"
             android:layout_height="wrap_content"
-            android:hint="Set Date (YYYY-MM-DD)" />
+            android:hint="Set Date/Hold for monthwise" />
 
 
         <Button
@@ -96,6 +96,25 @@
             android:text="Total: "
             />
 
+        <ImageView
+            android:visibility="gone"
+            android:layout_marginHorizontal="4dp"
+            android:id="@+id/barChartMonthly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/bar_chart_graph_svgrepo_com__1_"
+            />
+
+        <ImageView
+            android:id="@+id/barReportBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/report_svgrepo_com"
+            />
+
+
     </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -111,9 +130,15 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:gravity="center_vertical"
-            android:background="@drawable/border_dark"
+            android:background="@drawable/gray_light"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
+
+            <CheckBox
+                android:id="@+id/selectAllInvoiceCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
 
             <TextView
                 android:id="@+id/itemSelectedTxt"
@@ -124,7 +149,7 @@
                 android:textStyle="bold"
                 android:layout_height="wrap_content"
                 android:text="Items selected"
-                android:textColor="?android:colorBackground"
+                android:textColor="?android:textColorPrimary"
                 />
 
             <ImageView

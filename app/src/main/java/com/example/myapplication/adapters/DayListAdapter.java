@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +22,7 @@ import androidx.annotation.RequiresApi;
 import com.example.myapplication.R;
 import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.constants.InvoiceConstants;
+import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.dtos.Day;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
@@ -120,6 +122,12 @@ public class DayListAdapter extends BaseAdapter {
                         .addOnSuccessListener(unused -> {
                             Toast.makeText(context, "Data deleted successfully", Toast.LENGTH_SHORT).show();
 
+                            //delete from sqlite as well
+                            String dateToDelete = nestedItem.getDayName();
+
+                            DatabaseHelper db = new DatabaseHelper(context);
+                            db.deleteInvoicesByDate(dateToDelete);
+                            db.close();
                         })
                         .addOnFailureListener(e -> {
                             Toast.makeText(context, "Failed to delete data: " + e.getMessage(), Toast.LENGTH_SHORT).show();

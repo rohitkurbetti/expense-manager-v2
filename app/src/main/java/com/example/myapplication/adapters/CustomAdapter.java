@@ -1,13 +1,19 @@
 package com.example.myapplication.adapters;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.adapterholders.CustomItem;
@@ -63,6 +69,70 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
         holder.slider.setValue(item.getSliderValue());
         holder.valueTextView.setText(String.valueOf((int)item.getSliderValue()));
 
+        holder.valueTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAlertDialogToResizeSlider(item.getName());
+            }
+
+            private void showAlertDialogToResizeSlider(String itemName) {
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setTitle("Set value ["+itemName+"]");
+                builder.setCancelable(false);
+
+                builder.setIcon(R.drawable.list_tick_svgrepo_com);
+
+                View view = LayoutInflater.from(context).inflate(R.layout.resize_slider_row, null, false);
+
+                EditText etSliderQty = view.findViewById(R.id.resizeSliderQtyEditText);
+                etSliderQty.requestFocus();
+                builder.setView(view);
+
+
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        if(StringUtils.isNotBlank(etSliderQty.getText())) {
+                            float fVal = Float.parseFloat(String.valueOf(etSliderQty.getText()));
+
+                            if(fVal>0.0f && fVal<10000.0f) {
+                                holder.slider.setValueTo(fVal / 100);
+                                Toast.makeText(context, "["+itemName+"] max qty = "+(int) fVal, Toast.LENGTH_SHORT).show();
+
+                                animateHighlight(holder.itemView);
+
+
+                            } else {
+                                Toast.makeText(context, "Invalid range for ["+itemName+"] ", Toast.LENGTH_SHORT).show();
+                                holder.slider.setValueTo((float) 30 / 100);
+
+                            }
+
+                        }
+
+
+                    }
+                });
+
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        etSliderQty.setText(String.valueOf(30));
+                        holder.slider.setValueTo((float) 30 / 100);
+                        dialog.dismiss();
+                    }
+                });
+
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+
+            }
+        });
+
         if(StringUtils.containsIgnoreCase(holder.textView.getText(), "Lassi")) {
             holder.slider.setValueTo(1.00f);
         }
@@ -97,6 +167,14 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
 
 
         });
+    }
+
+    private void animateHighlight(View itemView) {
+        Animation animation = new AlphaAnimation(0.0f, 1.0f);
+        animation.setDuration(300); // duration for one flash
+        animation.setRepeatMode(Animation.REVERSE);
+        animation.setRepeatCount(4); // total flashes = 2
+        itemView.startAnimation(animation);
     }
 
     private int getItemPrice(String name) {

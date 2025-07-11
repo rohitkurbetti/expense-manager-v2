@@ -3,6 +3,7 @@ package com.example.myapplication;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -29,6 +30,7 @@ public class SharedPrefActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyUserTheme();
         super.onCreate(savedInstanceState);
 //        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_shared_pref);
@@ -126,6 +128,31 @@ public class SharedPrefActivity extends AppCompatActivity {
 //        });
     }
 
+    private void applyUserTheme() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
+
+        switch (theme) {
+            case "Default": setTheme(R.style.Base_Theme_MyApplication); break;
+            case "Red": setTheme(R.style.AppTheme_Red); break;
+            case "Blue": setTheme(R.style.AppTheme_Blue); break;
+            case "Green": setTheme(R.style.AppTheme_Green); break;
+            case "Purple": setTheme(R.style.AppTheme_Purple); break;
+            case "Orange": setTheme(R.style.AppTheme_Orange); break;
+            case "Teal": setTheme(R.style.AppTheme_Teal); break;
+            case "Pink": setTheme(R.style.AppTheme_Pink); break;
+            case "Cyan": setTheme(R.style.AppTheme_Cyan); break;
+            case "Lime": setTheme(R.style.AppTheme_Lime); break;
+            case "Brown": setTheme(R.style.AppTheme_Brown); break;
+            case "Mint": setTheme(R.style.AppTheme_Mint); break;
+            case "Coral": setTheme(R.style.AppTheme_Coral); break;
+            case "Steel": setTheme(R.style.AppTheme_Steel); break;
+            case "Lavender": setTheme(R.style.AppTheme_Lavender); break;
+            case "Mustard": setTheme(R.style.AppTheme_Mustard); break;
+            default: setTheme(R.style.Base_Theme_MyApplication); break;
+        }
+    }
+
     private void markFirstLaunchDone() {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putBoolean(FIRST_LAUNCH_KEY, false);
@@ -144,6 +171,7 @@ public class SharedPrefActivity extends AppCompatActivity {
         });
         Toast.makeText(this, "Item prices updated", Toast.LENGTH_SHORT).show();
         adapter.notifyDataSetChanged();
+        this.finish();
 
 
     }

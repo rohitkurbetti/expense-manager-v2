@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -18,6 +20,7 @@ import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.MainAdapter;
 import com.example.myapplication.dtos.Day;
 import com.example.myapplication.dtos.DtoJsonEntity;
@@ -56,6 +59,7 @@ public class CloudSummary extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyUserTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cloud_summary);
         recyclerView = findViewById(R.id.recyclerview);
@@ -84,6 +88,31 @@ public class CloudSummary extends AppCompatActivity {
                 // Handle no selection
             }
         });
+    }
+
+    private void applyUserTheme() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
+
+        switch (theme) {
+            case "Default": setTheme(R.style.Base_Theme_MyApplication); break;
+            case "Red": setTheme(R.style.AppTheme_Red); break;
+            case "Blue": setTheme(R.style.AppTheme_Blue); break;
+            case "Green": setTheme(R.style.AppTheme_Green); break;
+            case "Purple": setTheme(R.style.AppTheme_Purple); break;
+            case "Orange": setTheme(R.style.AppTheme_Orange); break;
+            case "Teal": setTheme(R.style.AppTheme_Teal); break;
+            case "Pink": setTheme(R.style.AppTheme_Pink); break;
+            case "Cyan": setTheme(R.style.AppTheme_Cyan); break;
+            case "Lime": setTheme(R.style.AppTheme_Lime); break;
+            case "Brown": setTheme(R.style.AppTheme_Brown); break;
+            case "Mint": setTheme(R.style.AppTheme_Mint); break;
+            case "Coral": setTheme(R.style.AppTheme_Coral); break;
+            case "Steel": setTheme(R.style.AppTheme_Steel); break;
+            case "Lavender": setTheme(R.style.AppTheme_Lavender); break;
+            case "Mustard": setTheme(R.style.AppTheme_Mustard); break;
+            default: setTheme(R.style.Base_Theme_MyApplication); break;
+        }
     }
 
 
@@ -141,6 +170,9 @@ public class CloudSummary extends AppCompatActivity {
                         expAmtMonth =0L;
                         List<Day> dayList = new ArrayList<>();
                         Month month = new Month();
+
+
+
                         for(DataSnapshot daySnapshot : monthSnapshot.getChildren()) {
                             Day day = new Day();
                             key = daySnapshot.getKey();
@@ -184,6 +216,9 @@ public class CloudSummary extends AppCompatActivity {
                 }
                 int totalYear = monthList.stream().map(month -> month.getMonthTotal()).mapToInt(n -> n.intValue()).sum();
                 yearTotal.setText("Total  \u20B9"+totalYear);
+
+
+
                 // Set the adapter
                 mainAdapter = new MainAdapter(CloudSummary.this,  monthList);
                 recyclerView.setAdapter(mainAdapter);

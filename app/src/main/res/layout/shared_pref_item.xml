@@ -21,9 +21,11 @@
                 android:id="@+id/circle_dot"
                 android:layout_width="16dp"
                 android:layout_height="16dp"
+                android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
+                android:elevation="3dp"
                 android:layout_gravity="center"
-                android:background="@drawable/baseline_circle_24" />
+                android:background="@drawable/border_dark" />
 
             <TextView
                 android:id="@+id/detail_title"

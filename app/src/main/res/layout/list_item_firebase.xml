@@ -10,16 +10,15 @@
 
     <TextView
         android:textStyle="bold"
-        android:layout_weight="1"
         android:id="@+id/nestedItemTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:paddingTop="5dp"
-        android:paddingHorizontal="8dp"
         android:layout_gravity="start|center_vertical" />
 
     <TextView
+        android:layout_weight="1"
         android:id="@+id/nestedItemExpense"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -37,12 +36,21 @@
         android:padding="8dp"
         android:layout_gravity="right|center_vertical" />
 
+    <TextView
+        android:layout_weight=".05"
+        android:id="@+id/nestedItemExpenseAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:paddingTop="5dp"
+        android:layout_gravity="right|center_vertical" />
 
     <ImageButton
         android:id="@+id/btnDeleteDateEntry"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Delete"
+        android:paddingTop="5dp"
         android:background="@android:color/transparent"
         android:src="@drawable/baseline_delete_forever_24"
         android:layout_gravity="center_vertical"

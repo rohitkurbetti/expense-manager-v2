@@ -16,10 +16,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.example.myapplication.ExpenseActivity;
+import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
 import com.example.myapplication.dtos.Invoice;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
@@ -43,8 +46,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -82,14 +87,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public long saveInvoiceTransaction(String itemListJson, Long grandTotal, Context context, DtoJson dtoJson, Long invoiceId) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        if(invoiceId!=null) {
+        if (invoiceId != null) {
             values.put("invoice_id", invoiceId);
 
         }
         values.put("total", grandTotal);
         dtoJson.setTotal(grandTotal);
-        if(itemListJson.charAt(0)== '"' && itemListJson.charAt(itemListJson.length()-1)=='"') {
-            itemListJson = itemListJson.substring(1,itemListJson.length()-1);
+        if (itemListJson.charAt(0) == '"' && itemListJson.charAt(itemListJson.length() - 1) == '"') {
+            itemListJson = itemListJson.substring(1, itemListJson.length() - 1);
         }
 
         values.put("item_list_json", itemListJson);
@@ -100,7 +105,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (newRowId != -1) {
 //            SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
 //            if(sharedPreferences.getBoolean("toggleCloudStore", true)) {
-                putDataFireStore(context, values, newRowId, dtoJson, itemListJson);
+            putDataFireStore(context, values, newRowId, dtoJson, itemListJson);
 //            }
 
             long newTodaysSales = getTodaysSales(dtoJson.getDate());
@@ -109,7 +114,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             try (ExpenseDbHelper expenseDbHelper = new ExpenseDbHelper(context)) {
                 Cursor res = expenseDbHelper.getExpenseByDate(values.getAsString("created_date"));
 
-                if(res.getCount()>0) {
+                if (res.getCount() > 0) {
                     while (res.moveToNext()) {
                         int expId = res.getInt(0);
                         String expPart = res.getString(1);
@@ -118,7 +123,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         String expDate = res.getString(4);
 
                         LocalDate yesterDay = LocalDate.now();
-                        if(StringUtils.isNotEmpty(expDate)) {
+                        if (StringUtils.isNotEmpty(expDate)) {
                             LocalDate dateParsed = LocalDate.parse(expDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                             yesterDay = dateParsed.minusDays(1);
                         }
@@ -132,17 +137,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
                         long updateRes = expenseDbHelper.updateExpenseAfterNewInvoices(expense);
 
-                        if(updateRes>0) {
-                            Toast.makeText(context, "Expenses updated", Toast.LENGTH_SHORT).show();
+                        if (updateRes > 0) {
+//                            Toast.makeText(context, "Expenses updated", Toast.LENGTH_SHORT).show();
                             ExpenseActivity.saveExpenseOnCloud(context, expDate, expense);
                         } else {
-                            Toast.makeText(context, "Expenses updation failed", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(context, "Expenses updation failed", Toast.LENGTH_SHORT).show();
                         }
 
 
                     }
                 }
-
 
 
             }
@@ -201,16 +205,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
         String deviceModel = sharedPreferences.getString("model", Build.MODEL);
-        DatabaseReference myRef = database.getReference(deviceModel+"/"+"invoices");
+        DatabaseReference myRef = database.getReference(deviceModel + "/" + "invoices");
 
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
 
 
         LocalDate localDate = LocalDate.parse(dtoJson.getDate(), dateTimeFormatter);
         Calendar calendar = Calendar.getInstance();
 
-        int hour =calendar.get(Calendar.HOUR_OF_DAY);
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int min = calendar.get(Calendar.MINUTE);
         int sec = calendar.get(Calendar.SECOND);
 
@@ -225,7 +228,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         sec = ldtmParsed.getSecond();
 
         boolean todaysDate = true;
-        if(localDate.equals(LocalDate.now())) {
+        if (localDate.equals(LocalDate.now())) {
             todaysDate = true;
         } else {
             todaysDate = false;
@@ -248,8 +251,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String sendLocalDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss"));
 
         // Store user data
-        myRef.child(year+"").child(monthShort+"-"+year).child(todaysDate ==true ? sendLocalDate : localDate+"")
-                .child(String.format("%02d",hour)+"_"+String.format("%02d",min)+"_"+String.format("%02d",sec)).setValue(dtoJsonEntity)
+        myRef.child(year + "").child(monthShort + "-" + year).child(todaysDate == true ? sendLocalDate : localDate + "")
+                .child(String.format("%02d", hour) + "_" + String.format("%02d", min) + "_" + String.format("%02d", sec)).setValue(dtoJsonEntity)
                 .addOnSuccessListener(aVoid -> {
                     // Data stored successfully
                     Toast.makeText(context, "Data saved on cloud successfully!", Toast.LENGTH_SHORT).show();
@@ -258,9 +261,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     // Failed to store data
                     Toast.makeText(context, "Failed to save data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
-
-
-
 
 
     }
@@ -280,13 +280,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             while (cursor.moveToNext()) {
                 String column1 = cursor.getString(0);
                 String column2 = cursor.getString(1);
-                column2 = "\""+column2+"\"";
+                column2 = "\"" + column2 + "\"";
                 String column3 = cursor.getString(2);
                 String column4 = cursor.getString(3);
                 String column5 = cursor.getString(4);
 
                 // Construct CSV row
-                String csvRow = column1 + "," +  column2 + "," + column3 + "," + column4+ "," + column5+ "\n";
+                String csvRow = column1 + "," + column2 + "," + column3 + "," + column4 + "," + column5 + "\n";
 
                 // Write CSV row to file
                 writer.append(csvRow);
@@ -304,7 +304,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("select * from invoices order by invoice_id desc ", null);
     }
 
-        public void deleteFireStoreData(Context context, ProgressDialog pd) {
+    public void deleteFireStoreData(Context context, ProgressDialog pd) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         CollectionReference collectionRef = db.collection("invoices");
@@ -355,7 +355,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT sum(total) FROM invoices WHERE created_date = ?";
         Cursor cursor = db.rawQuery(query, new String[]{date});
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
                 todaysSales = Long.parseLong(String.valueOf(cursor.getLong(0)));
             }
@@ -378,7 +378,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         // Build the final SQL query
         String sql = "DELETE FROM invoices WHERE invoice_id IN (" + placeholders + ")";
-        Log.d(">>",invoiceIds+" "+sql);
+        Log.d(">>", invoiceIds + " " + sql);
         // Convert Set<Integer> to String[] for binding arguments
         String[] args = invoiceIds.stream()
                 .map(String::valueOf)
@@ -395,7 +395,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         progressDialog.show();
         List<Invoice> selInvs = invoices.stream().filter(Invoice::getChecked).collect(Collectors.toList());
 
-        if(!selInvs.isEmpty()) {
+        if (!selInvs.isEmpty()) {
 
             selInvs.forEach(invoice -> {
                 String date = invoice.getCreatedDate();
@@ -408,15 +408,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
                 String deviceModel = sharedPreferences.getString("model", Build.MODEL);
 
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"invoices");
-                databaseReference.child("/"+ formattedOnlyYear +"/"+ formattedMonthYear +"/"+ date +"/"+ formattedHHmmss +"/").removeValue()
-                    .addOnSuccessListener(unused -> {
-                        progressDialog.dismiss();
-                    })
-                    .addOnFailureListener(e -> {
-                        progressDialog.dismiss();
-                    });
-                });
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/" + "invoices");
+                databaseReference.child("/" + formattedOnlyYear + "/" + formattedMonthYear + "/" + date + "/" + formattedHHmmss + "/").removeValue()
+                        .addOnSuccessListener(unused -> {
+                            progressDialog.dismiss();
+                        })
+                        .addOnFailureListener(e -> {
+                            progressDialog.dismiss();
+                        });
+            });
 
         } else {
             progressDialog.dismiss();
@@ -485,4 +485,66 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
 
+    public void deleteInvoicesByDate(String dateToDelete) {
+        SQLiteDatabase db = this.getWritableDatabase(); // dbHelper is your SQLiteOpenHelper
+        int rowsDeleted = db.delete("invoices", "created_date = ?", new String[]{dateToDelete});
+        Toast.makeText(context, rowsDeleted + " records deleted for [" + dateToDelete + "]", Toast.LENGTH_LONG).show();
+
+    }
+
+    public Map<String, Integer[]> getInvoicesByDate(String date) {
+        SQLiteDatabase db = this.getReadableDatabase(); // dbHelper is your SQLiteOpenHelper
+        Cursor cursor = db.rawQuery("SELECT * FROM invoices WHERE created_date = ?", new String[]{date});
+
+        Map<String, Integer[]> itemSaleMap = new HashMap<>();
+
+
+        if (cursor.getCount() > 0) {
+
+            int qty = 0;
+            int amount = 0;
+            while (cursor.moveToNext()) {
+                String itemListJson = cursor.getString(1);
+
+                ObjectMapper objectMapper = new ObjectMapper();
+
+                DtoJson itemObject = null;
+                try {
+                    itemObject = objectMapper.readValue(itemListJson, DtoJson.class);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+                List<CustomItem> items = itemObject.getItemList();
+
+                for (CustomItem i : items) {
+                    if (itemSaleMap.containsKey(i.getName())) {
+                        int tempQty = itemSaleMap.get(i.getName())[1];
+                        qty = (int) i.getSliderValue() + tempQty;
+                        amount = i.getAmount();
+                        itemSaleMap.put(i.getName(), new Integer[]{amount, qty});
+                    } else {
+                        amount = 0;
+                        qty = (int) i.getSliderValue();
+                        amount = amount + i.getAmount();
+                        itemSaleMap.put(i.getName(), new Integer[]{amount, (int) i.getSliderValue()});
+
+                    }
+                }
+
+            }
+        }
+        db.close();
+        return itemSaleMap;
+    }
+
+    public boolean entryExists(Long invoiceId, Long total) {
+        boolean isExists = false;
+        SQLiteDatabase db = this.getReadableDatabase(); // dbHelper is your SQLiteOpenHelper
+        Cursor cursor = db.rawQuery("SELECT * FROM invoices WHERE invoice_id = ?", new String[]{String.valueOf(invoiceId)});
+
+        if(cursor.getCount()>0) {
+            isExists = true;
+        }
+        return isExists;
+    }
 }

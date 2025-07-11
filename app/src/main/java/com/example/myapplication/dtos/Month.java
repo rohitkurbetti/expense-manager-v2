@@ -9,6 +9,16 @@ public class Month {
     private Long monthTotal;
     private List<Day> dayList = new ArrayList<>();
 
+    private Long monthExpAmount;
+
+    public Long getMonthExpAmount() {
+        return monthExpAmount;
+    }
+
+    public void setMonthExpAmount(Long monthExpAmount) {
+        this.monthExpAmount = monthExpAmount;
+    }
+
     private Boolean isExpanded;
 
     public Long getMonthTotal() {

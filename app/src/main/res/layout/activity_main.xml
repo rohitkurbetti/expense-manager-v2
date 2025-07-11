@@ -32,7 +32,7 @@
         android:text="Selective total text"
         android:layout_marginBottom="24dp"
         android:layout_marginLeft="16dp"
-        android:textColor="@color/colorPrimary"
+        android:textColor="?colorPrimaryDark"
         android:textSize="15sp"
         />
 

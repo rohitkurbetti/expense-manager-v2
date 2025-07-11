@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/radioGroup"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <RadioButton
+        android:id="@+id/monthlyRadioBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Monthly" />
+
+    <RadioButton
+        android:id="@+id/quarterlyRadioBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quarterly" />
+
+    <RadioButton
+        android:id="@+id/yearlyRadioBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Yearly" />
+
+    <RadioButton
+        android:visibility="gone"
+        android:id="@+id/radioOption4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Option 4" />
+
+</RadioGroup>

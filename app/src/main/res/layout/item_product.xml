@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/card_background_light"
+    android:elevation="4dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/buttonSmallMinus"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Remove One"
+            android:scaleType="centerInside"
+            android:src="@drawable/chevron_down_svgrepo_com"
+            app:tint="@color/text_dark_secondary" />
+
+        <TextView
+            android:id="@+id/textProductName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Drink Item"
+            android:textColor="@color/text_dark"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textEditableQuantityLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Editable Quantity"
+            android:textColor="@color/text_dark_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/textCurrentQuantityInput"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:paddingHorizontal="8dp"
+            android:text="0"
+            android:textColor="@color/text_dark"
+            android:textSize="18sp"
+            android:visibility="gone" />
+
+        <GridLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/grid_background"
+            android:columnCount="3"
+            android:padding="2dp"
+            android:rowCount="3">
+
+            <Button
+                android:id="@+id/buttonNum1"
+                style="@style/QuantityGridButton"
+                android:background="@drawable/border1"
+                android:text="-" />
+
+            <Button
+                android:id="@+id/buttonNum2"
+                style="@style/QuantityGridButton"
+                android:background="@drawable/border1"
+                android:text="-" />
+
+            <Button
+                android:id="@+id/buttonNum3"
+                style="@style/QuantityGridButton"
+                android:background="@drawable/border1"
+                android:text="-" />
+
+            <Button
+                android:id="@+id/buttonNum4"
+                style="@style/QuantityGridButton"
+                android:background="@drawable/border1"
+                android:text="-" />
+
+        </GridLayout>
+
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/minusMainBtn"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/button_circular_background"
+        android:contentDescription="Remove Item"
+        android:scaleType="centerInside"
+        android:src="@drawable/minus_circle_svgrepo_com" />
+
+
+    <ImageButton
+        android:id="@+id/buttonMainAction"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/button_circular_background"
+        android:contentDescription="Add Item"
+        android:scaleType="centerInside"
+        android:src="@drawable/plus_svgrepo_com" />
+
+</LinearLayout>

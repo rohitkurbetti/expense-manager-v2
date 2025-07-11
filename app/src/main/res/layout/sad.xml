@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical"
+    android:layout_marginBottom="8dp"
+    android:background="@android:color/white"
+    android:elevation="2dp">
+
+    <TextView
+        android:id="@+id/textProductName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Product Name"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Editable Quantity"
+            android:textSize="12sp"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/textQuantity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="20sp"
+            android:paddingHorizontal="12dp"
+            android:background="@drawable/quantity_background"/> <GridLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:rowCount="2"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/buttonQuantity1"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="1"
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/buttonQuantity2"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="2"
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/buttonQuantity3"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="3"
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/buttonQuantity4"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="4"
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/buttonQuantity0"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="0"
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/buttonQuantityDot"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="."
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/buttonQuantityPlus"
+            android:layout_width="40dp"
+            android:layout_height="35dp"
+            android:text="+"
+            style="?android:attr/buttonBarButtonStyle" />
+    </GridLayout>
+
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/buttonAdjustPlus"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/ic_input_add"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Increase Quantity"
+        android:layout_marginStart="8dp"/>
+
+</LinearLayout>

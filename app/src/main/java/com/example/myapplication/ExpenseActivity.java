@@ -6,6 +6,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -23,6 +29,8 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -63,6 +71,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -70,7 +79,7 @@ import java.util.stream.Collectors;
 public class ExpenseActivity extends AppCompatActivity {
 
     private EditText etExpenseParticulars, etExpenseAmount, etExpenseDateTime;
-    private Button btnSaveExpense;
+    private Button btnSaveExpense,getExpenses;
     private ExpenseDbHelper expenseDbHelper;
     private DatabaseHelper databaseHelper;
     private TextView textViewExpenseTotal,textViewBalanceTotal,textViewDate;
@@ -104,6 +113,7 @@ public class ExpenseActivity extends AppCompatActivity {
         etExpenseAmount = findViewById(R.id.etExpenseAmount);
         etExpenseDateTime = findViewById(R.id.etExpenseDateTime);
         btnSaveExpense = findViewById(R.id.btnSaveExpense);
+        getExpenses = findViewById(R.id.getExpenses);
         textViewExpenseTotal = findViewById(R.id.textViewExpenseTotal);
         textViewBalanceTotal = findViewById(R.id.textViewBalanceTotal);
         textViewDate = findViewById(R.id.textViewDate);
@@ -114,6 +124,208 @@ public class ExpenseActivity extends AppCompatActivity {
         // Initialize database helper
         expenseDbHelper = new ExpenseDbHelper(this);
         databaseHelper = new DatabaseHelper(this);
+
+        getExpenses.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Cursor cursor = expenseDbHelper.getAllExpenses();
+
+                if(cursor !=null && cursor.getCount()>0) {
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(ExpenseActivity.this);
+                    builder.setTitle("Expense details");
+                    builder.setCancelable(false);
+                    builder.setIcon(R.drawable.ic_report);
+                    View customView = getLayoutInflater().inflate(R.layout.expense_table_layout, null, false);
+
+
+                    ImageView profileImageView = customView.findViewById(R.id.profileImageView);
+
+                    Bitmap profileBitmap = generateInitialsImage("Rohit", "Kurbetti", 80, ExpenseActivity.this);
+                    profileImageView.setImageBitmap(profileBitmap);
+
+
+                    builder.setView(customView);
+
+                    TableLayout tableLayout = customView.findViewById(R.id.tableLayout);
+
+                    // Create new TableRow
+                    TableRow tableHeaderRow = new TableRow(ExpenseActivity.this);
+                    tableHeaderRow.setLayoutParams(new TableLayout.LayoutParams(
+                            TableLayout.LayoutParams.MATCH_PARENT,
+                            TableLayout.LayoutParams.WRAP_CONTENT));
+
+
+                    populateHeaderRow(tableLayout, tableHeaderRow);
+
+
+                    while(cursor.moveToNext()) {
+                        int id = cursor.getInt(0);
+                        String expPart = cursor.getString(1);
+                        int expAmt = cursor.getInt(2);
+                        String expDateTime = cursor.getString(3);
+                        String expDate = cursor.getString(4);
+                        int yBalance = cursor.getInt(5);
+                        int sales = cursor.getInt(6);
+                        int balance = cursor.getInt(7);
+
+//                        Expense expense = new Expense(id, expPart, expAmt, expDateTime, expDate, yBalance, sales, balance);
+
+                        // Create new TableRow
+                        TableRow tableRow = new TableRow(ExpenseActivity.this);
+                        tableRow.setLayoutParams(new TableLayout.LayoutParams(
+                                TableLayout.LayoutParams.MATCH_PARENT,
+                                TableLayout.LayoutParams.WRAP_CONTENT));
+
+                        // Create TextViews to add to the row
+                        TextView col1 = new TextView(ExpenseActivity.this);
+                        col1.setText(String.valueOf(id));
+                        col1.setPadding(16, 16, 16, 16);
+                        col1.setGravity(Gravity.CENTER);
+
+                        TextView col2 = new TextView(ExpenseActivity.this);
+                        col2.setText(String.valueOf(expPart));
+                        col2.setPadding(16, 16, 16, 16);
+                        col2.setGravity(Gravity.CENTER);
+
+                        TextView col3 = new TextView(ExpenseActivity.this);
+                        col3.setText(String.valueOf(expAmt));
+                        col3.setPadding(16, 16, 16, 16);
+                        col3.setGravity(Gravity.CENTER);
+
+
+                        TextView col4 = new TextView(ExpenseActivity.this);
+                        col4.setText(String.valueOf(expDateTime));
+                        col4.setPadding(16, 16, 16, 16);
+                        col4.setGravity(Gravity.CENTER);
+
+
+                        TextView col5 = new TextView(ExpenseActivity.this);
+                        col5.setText(String.valueOf(expDate));
+                        col5.setPadding(16, 16, 16, 16);
+                        col5.setGravity(Gravity.CENTER);
+
+
+                        TextView col6 = new TextView(ExpenseActivity.this);
+                        col6.setText(String.valueOf(yBalance));
+                        col6.setPadding(16, 16, 16, 16);
+                        col6.setGravity(Gravity.CENTER);
+
+
+                        TextView col7 = new TextView(ExpenseActivity.this);
+                        col7.setText(String.valueOf(sales));
+                        col7.setPadding(16, 16, 16, 16);
+                        col7.setGravity(Gravity.CENTER);
+
+
+                        TextView col8 = new TextView(ExpenseActivity.this);
+                        col8.setText(String.valueOf(balance));
+                        col8.setPadding(16, 16, 16, 16);
+                        col8.setGravity(Gravity.CENTER);
+
+
+                        // Add TextViews to TableRow
+                        tableRow.addView(col1);
+                        tableRow.addView(col2);
+                        tableRow.addView(col3);
+                        tableRow.addView(col4);
+                        tableRow.addView(col5);
+                        tableRow.addView(col6);
+                        tableRow.addView(col7);
+                        tableRow.addView(col8);
+
+                        // Add TableRow to TableLayout
+                        tableLayout.addView(tableRow);
+
+                    }
+
+
+                    builder.setPositiveButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+
+                }
+
+            }
+
+            private void populateHeaderRow(TableLayout tableLayout, TableRow tableHeaderRow) {
+
+                // Create TextViews to add to the row
+                TextView col1 = new TextView(ExpenseActivity.this);
+                col1.setText(String.valueOf("Id"));
+                col1.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col1.setPadding(16, 16, 16, 16);
+                col1.setGravity(Gravity.CENTER);
+
+                TextView col2 = new TextView(ExpenseActivity.this);
+                col2.setText(String.valueOf("Particulars"));
+                col2.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col2.setPadding(16, 16, 16, 16);
+                col2.setGravity(Gravity.CENTER);
+
+                TextView col3 = new TextView(ExpenseActivity.this);
+                col3.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col3.setText(String.valueOf("Amount"));
+                col3.setPadding(16, 16, 16, 16);
+                col3.setGravity(Gravity.CENTER);
+
+
+                TextView col4 = new TextView(ExpenseActivity.this);
+                col4.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col4.setText(String.valueOf("Date Time"));
+                col4.setPadding(16, 16, 16, 16);
+                col4.setGravity(Gravity.CENTER);
+
+
+                TextView col5 = new TextView(ExpenseActivity.this);
+                col5.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col5.setText(String.valueOf("Date"));
+                col5.setPadding(16, 16, 16, 16);
+                col5.setGravity(Gravity.CENTER);
+
+
+                TextView col6 = new TextView(ExpenseActivity.this);
+                col6.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col6.setText(String.valueOf("Yesterdays Balance"));
+                col6.setPadding(16, 16, 16, 16);
+                col6.setGravity(Gravity.CENTER);
+
+
+                TextView col7 = new TextView(ExpenseActivity.this);
+                col7.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col7.setText(String.valueOf("Sales"));
+                col7.setPadding(16, 16, 16, 16);
+                col7.setGravity(Gravity.CENTER);
+
+
+                TextView col8 = new TextView(ExpenseActivity.this);
+                col8.setTypeface(null, Typeface.BOLD); // Set text as bold
+                col8.setText(String.valueOf("Balance"));
+                col8.setPadding(16, 16, 16, 16);
+                col8.setGravity(Gravity.CENTER);
+
+                // Add TextViews to TableRow
+                tableHeaderRow.addView(col1);
+                tableHeaderRow.addView(col2);
+                tableHeaderRow.addView(col3);
+                tableHeaderRow.addView(col4);
+                tableHeaderRow.addView(col5);
+                tableHeaderRow.addView(col6);
+                tableHeaderRow.addView(col7);
+                tableHeaderRow.addView(col8);
+
+                // Add TableRow to TableLayout
+                tableLayout.addView(tableHeaderRow);
+
+            }
+        });
+
 
         // Set up the SaveExpense button click listener
         btnSaveExpense.setOnClickListener(view -> {
@@ -253,6 +465,58 @@ public class ExpenseActivity extends AppCompatActivity {
 
 
     }
+
+    public static Bitmap generateInitialsImage(String firstName, String lastName, int sizeInDp, Context context) {
+        String initials = "";
+        if (firstName != null && !firstName.isEmpty()) {
+            initials += firstName.substring(0, 1).toUpperCase();
+        }
+        if (lastName != null && !lastName.isEmpty()) {
+            initials += lastName.substring(0, 1).toUpperCase();
+        }
+
+        int sizeInPx = (int) (sizeInDp * context.getResources().getDisplayMetrics().density);
+        Bitmap bitmap = Bitmap.createBitmap(sizeInPx, sizeInPx, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        // Draw circle background
+        Paint circlePaint = new Paint();
+
+        int[] colors = {
+                Color.parseColor("#F44336"), // Red
+                Color.parseColor("#E91E63"), // Pink
+                Color.parseColor("#9C27B0"), // Purple
+                Color.parseColor("#3F51B5"), // Indigo
+                Color.parseColor("#03A9F4"), // Light Blue
+                Color.parseColor("#009688"), // Teal
+                Color.parseColor("#4CAF50"), // Green
+                Color.parseColor("#FF9800"), // Orange
+                Color.parseColor("#795548")  // Brown
+        };
+
+        Random random = new Random();
+        int randomColor = colors[random.nextInt(colors.length)];
+        circlePaint.setColor(randomColor);
+
+        circlePaint.setAntiAlias(true);
+        canvas.drawCircle(sizeInPx / 2, sizeInPx / 2, sizeInPx / 2, circlePaint);
+
+        // Draw text (initials)
+        Paint textPaint = new Paint();
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(sizeInPx / 2); // Adjust text size
+        textPaint.setAntiAlias(true);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+
+        Paint.FontMetrics fontMetrics = textPaint.getFontMetrics();
+        float x = sizeInPx / 2f;
+        float y = sizeInPx / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2;
+
+        canvas.drawText(initials, x, y, textPaint);
+
+        return bitmap;
+    }
+
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override

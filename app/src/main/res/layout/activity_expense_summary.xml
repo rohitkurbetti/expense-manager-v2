@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ExpenseSummaryActivity">
+
+
+
+    <LinearLayout
+        android:gravity="center"
+        android:layout_margin="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_weight=".1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select year"
+            android:textSize="18sp"
+            android:layout_marginStart="16dp"
+
+            />
+
+    <androidx.appcompat.widget.AppCompatSpinner
+        android:layout_weight=".5"
+        android:id="@+id/yearExpenseSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:spinnerMode="dropdown" />
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
+    <ExpandableListView
+        android:visibility="gone"
+        android:layout_margin="4dp"
+        android:id="@+id/expandableListView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
+    <ProgressBar
+        android:id="@+id/loadingSpinner"
+        android:layout_width="wrap_content"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="visible" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,6 +1,7 @@
 package com.example.myapplication.adapterholders;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class CustomItem implements Serializable {
 
@@ -67,5 +68,19 @@ public class CustomItem implements Serializable {
                 ", sliderValue=" + sliderValue +
                 ", amount=" + amount +
                 '}';
+    }
+
+    // Override equals and hashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CustomItem)) return false;
+        CustomItem item = (CustomItem) o;
+        return Objects.equals(name, item.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
     }
 }

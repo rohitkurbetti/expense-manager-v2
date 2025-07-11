@@ -433,7 +433,7 @@ public class ReportActivity extends AppCompatActivity {
 
             // Add customer details
             Paragraph customerDetails = new Paragraph()
-                    .add("From  " + oldDateVal + " to " + newDateVal + "\n")
+                    .add("From  " + getFormattedDate(oldDateVal) + " to " + getFormattedDate(newDateVal) + "\n")
                     .add("Total sales in (Rs) : " + total + "\n\n");
             document.add(customerDetails);
 
@@ -525,6 +525,15 @@ public class ReportActivity extends AppCompatActivity {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private String getFormattedDate(String dateVal) {
+        LocalDate localDateFmtted = LocalDate.parse(dateVal, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String month = localDateFmtted.format(DateTimeFormatter.ofPattern("MMM")).toUpperCase();
+
+        String dateFmtted = localDateFmtted.getDayOfMonth()+"-"+ month +"-"+localDateFmtted.getYear();
+        return dateFmtted;
     }
 
     private List<CustomItem> getParserJsonList(String jsonItemList) {

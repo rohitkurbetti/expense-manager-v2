@@ -11,10 +11,10 @@ public class Invoice {
     private long total;
     private String createdDateTime;
     private String createdDate;
-    private Map<String, Integer> itemSaleMap;
+    private Map<String, Integer[]> itemSaleMap;
     private Boolean isChecked = false;
 
-    public Invoice(int invoiceId, String itemListJson, long total, String createdDateTime, String createdDate, Map<String, Integer> itemSaleMap) {
+    public Invoice(int invoiceId, String itemListJson, long total, String createdDateTime, String createdDate, Map<String, Integer[]> itemSaleMap) {
         this.invoiceId = invoiceId;
         this.itemListJson = itemListJson;
         this.total = total;
@@ -23,11 +23,11 @@ public class Invoice {
         this.itemSaleMap = itemSaleMap;
     }
 
-    public Map<String, Integer> getItemSaleMap() {
+    public Map<String, Integer[]> getItemSaleMap() {
         return itemSaleMap;
     }
 
-    public void setItemSaleMap(Map<String, Integer> itemSaleMap) {
+    public void setItemSaleMap(Map<String, Integer[]> itemSaleMap) {
         this.itemSaleMap = itemSaleMap;
     }
 

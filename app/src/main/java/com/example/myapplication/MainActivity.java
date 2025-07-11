@@ -25,6 +25,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
@@ -68,6 +69,7 @@ import com.example.myapplication.adapters.CustomAdapter;
 import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.NestedListAdapter;
 import com.example.myapplication.adapters.NestedOtherListAdapter;
+import com.example.myapplication.adapters.OtherItemsAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.adapterholders.CustomItem;
@@ -138,13 +140,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
@@ -161,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
     DatabaseHelper dbHelper;
     ExpenseDbHelper expenseDbHelper;
     private ArrayAdapter<String> spinnerAdapter;
-    private Map<String, Integer> otherItemsMap;
+    private Map<String, Integer[]> otherItemsMap;
     ProgressDialog pd;
     private static final int REQUEST_MANAGE_STORAGE = 123;
     private static final int REQUEST_WRITE_STORAGE = 112;
@@ -178,14 +184,29 @@ public class MainActivity extends AppCompatActivity {
     com.itextpdf.kernel.colors.Color oddRowColor1 = new DeviceRgb(204, 229, 255); //
     com.itextpdf.kernel.colors.Color oddRowColor = new DeviceRgb(255, 229, 204); // Light Orange
     int total = 0;
+    private OtherItemsAdapter otherItemsAdapter;
+    private long typingDelayMillis = 70; // Delay between each character (in milliseconds)
+    private Handler handler = new Handler();
+
+    String[] themes = {
+            "Red", "Blue", "Green", "Purple", "Orange",
+            "Teal", "Pink", "Cyan", "Lime", "Brown",
+            "Mint", "Coral", "Steel", "Lavender", "Mustard"
+    };
 
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyUserTheme();  // Apply before setContentView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        otherItemsMap = new HashMap<>();
+
+        // Show the hacker console dialog when the app launches
+//        showHackerConsoleDialog();
+
+
+        otherItemsMap = new HashMap<String, Integer[]>();
 //        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // For Dark Mode
 //        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);  // For Light Mode
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);  // Follow system setting
@@ -231,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View view) {
-                if (itemList.size() > 0) {
+                if (!itemList.isEmpty()) {
                     showAlertDialog(itemList);
                 } else {
                     Toast.makeText(MainActivity.this, "Please select 1 item", Toast.LENGTH_SHORT).show();
@@ -251,6 +272,47 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void applyUserTheme() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
+
+        switch (theme) {
+            case "Default": setTheme(R.style.Base_Theme_MyApplication); break;
+            case "Red": setTheme(R.style.AppTheme_Red); break;
+            case "Blue": setTheme(R.style.AppTheme_Blue); break;
+            case "Green": setTheme(R.style.AppTheme_Green); break;
+            case "Purple": setTheme(R.style.AppTheme_Purple); break;
+            case "Orange": setTheme(R.style.AppTheme_Orange); break;
+            case "Teal": setTheme(R.style.AppTheme_Teal); break;
+            case "Pink": setTheme(R.style.AppTheme_Pink); break;
+            case "Cyan": setTheme(R.style.AppTheme_Cyan); break;
+            case "Lime": setTheme(R.style.AppTheme_Lime); break;
+            case "Brown": setTheme(R.style.AppTheme_Brown); break;
+            case "Mint": setTheme(R.style.AppTheme_Mint); break;
+            case "Coral": setTheme(R.style.AppTheme_Coral); break;
+            case "Steel": setTheme(R.style.AppTheme_Steel); break;
+            case "Lavender": setTheme(R.style.AppTheme_Lavender); break;
+            case "Mustard": setTheme(R.style.AppTheme_Mustard); break;
+            default: setTheme(R.style.Base_Theme_MyApplication); break;
+        }
+    }
+
+    private void showHackerConsoleDialog() {
+        HackerConsoleDialog dialog = new HackerConsoleDialog(this);
+        dialog.show();
+
+        // The sentences you want to auto-type, one per array element
+        String[] automatedTasks = new String[]{
+                "System initializing...",
+                "Establishing secure connection...",
+                "Accessing encrypted data streams...",
+                "Running diagnostic protocols...",
+                "Initialization complete...",
+                "Welcome, Anonymous user."
+        };
+        dialog.startTyping(automatedTasks);
     }
 
     private void setDeviceModelInSharedPrefs() {
@@ -730,7 +792,7 @@ public class MainActivity extends AppCompatActivity {
 //                        newTextView.setTextSize(16);
 
 //                        otherEntityView.setVisibility(View.VISIBLE);
-                        Map<String, Integer> itemsMap = showOtherEntityAlert(null, false, checkBox);
+                        Map<String, Integer[]> itemsMap = showOtherEntityAlert(null, false, checkBox);
                     } else {
                         otherItemsMap.clear();
 //                        otherTextView.setText("");
@@ -762,23 +824,11 @@ public class MainActivity extends AppCompatActivity {
                 @RequiresApi(api = Build.VERSION_CODES.O)
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-                    try {
 
-                        //map to list;
-                        otherItemsList = new ArrayList<>();
 
-                        if (otherItemsMap != null && otherItemsMap.size() > 0) {
-                            otherItemsMap.forEach((k, v) -> {
-                                CustomItem customItem = new CustomItem(k, false, 1, v);
-                                otherItemsList.add(customItem);
-                            });
-                        }
 
-                        calculate(finalItemList, otherItemsList, selectDateLink.getText().toString(), false);
-                        otherItemsList.clear();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+
+
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -788,6 +838,45 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             AlertDialog dialog = builder.create();
+
+            dialog.setOnShowListener(dialog1 -> {
+                Button openNested = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                openNested.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Confirm date?")
+                                .setIcon(R.drawable.cloud_computing_enabled_data)
+                                .setCancelable(false)
+                                .setMessage("Save invoice for "+selectDateLink.getText())
+                                .setPositiveButton("Save", (asd, which) -> {
+                                    //map to list;
+                                    otherItemsList = new ArrayList<>();
+
+                                    if (otherItemsMap != null && otherItemsMap.size() > 0) {
+                                        otherItemsMap.forEach((k, val) -> {
+                                            CustomItem customItem = new CustomItem(k, false, val[1], val[0] * val[1]);
+                                            otherItemsList.add(customItem);
+                                        });
+                                    }
+
+                                    try {
+                                        calculate(finalItemList, otherItemsList, selectDateLink.getText().toString(), false);
+                                    } catch (IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    otherItemsList.clear();
+                                    dialog.dismiss();
+                                }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                }).show();
+                    }
+                });
+            });
+
             dialog.show();
         } else {
             Toast.makeText(this, "Please select minimum 1 item", Toast.LENGTH_SHORT).show();
@@ -799,8 +888,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private Map<String, Integer> showOtherEntityAlert(TextView otherTextView, Boolean otherItemsOnly, CheckBox checkBox) {
-
+    private Map<String, Integer[]> showOtherEntityAlert(TextView otherTextView, Boolean otherItemsOnly, CheckBox checkBox) {
+        AtomicInteger qty= new AtomicInteger(0);
         View view = getLayoutInflater().inflate(R.layout.other_entity, null, false);
 
         Button btnAddToBucket = view.findViewById(R.id.btnAddToBucket);
@@ -808,15 +897,52 @@ public class MainActivity extends AppCompatActivity {
         Spinner spinnerBucket = view.findViewById(R.id.spinnerBucket);
         EditText etItemName = view.findViewById(R.id.etItemName);
         EditText etItemValue = view.findViewById(R.id.etItemValue);
+        EditText etOtherItemQty = view.findViewById(R.id.otherItemQty);
+        ImageView otherQtyUpBtn = view.findViewById(R.id.otherQtyUpBtn);
+        ImageView otherQtyDownBtn = view.findViewById(R.id.otherQtyDownBtn);
+
+        ListView otherItemsListView = view.findViewById(R.id.otherItemsListView);
+
+
+        Set<CustomItem> customItemSet = new HashSet<>();
+        List<CustomItem> otherItemsF = new ArrayList<>(customItemSet);
+
+        otherItemsAdapter = new OtherItemsAdapter(this, otherItemsF);
+        otherItemsListView.setAdapter(otherItemsAdapter);
+
+
+
+        otherQtyUpBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                etOtherItemQty.setText(String.valueOf(qty.addAndGet(1)));
+            }
+        });
+
+        otherQtyDownBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(qty.get()>0) {
+                    etOtherItemQty.setText(String.valueOf(qty.decrementAndGet()));
+                } else {
+                    etOtherItemQty.setText(String.valueOf(qty.getAndSet(1)));
+                }
+
+            }
+        });
+
+
 
         List<String> items = new ArrayList<>();
+
+
 
         spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         spinnerBucket.setAdapter(spinnerAdapter);
 
-        Map<String, Integer> itemMap = new HashMap<>();
+        Map<String, Integer[]> itemMap = new HashMap<>();
 
 //        spinnerBucket.setSelection(0, false);
 
@@ -845,22 +971,52 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String itemName = etItemName.getText().toString();
                 String itemValue = etItemValue.getText().toString();
-                if (itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()) {
-                    addItemToSpinner(itemName, itemValue);
+                int qty = Integer.parseInt(etOtherItemQty.getText().toString());
+
+                if (itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty() && qty!=0) {
+//                    addItemToSpinner(itemName, itemValue);
+                    addItemToSet(itemName, itemValue, qty);
                     showCustomToast("Item " + itemName + " added");
-                    animateBackground(spinnerBucket, false);
+//                    animateBackground(spinnerBucket, false);
+                    otherItemsF.clear();
+                    otherItemsF.addAll(customItemSet);
+                    Log.i("Other Items >> ", customItemSet.toString());
 
                 }
             }
 
+            private void addItemToSet(String itemName, String itemRate, Integer qty) {
+                CustomItem customItem = new CustomItem(itemName, false, (float) qty , Integer.parseInt(itemRate));
+                if(!customItemSet.add(customItem)) {
+                    customItemSet.remove(customItem);
+                    customItemSet.add(new CustomItem(itemName, false, (float) qty , Integer.parseInt(itemRate)));
+                }
+
+                int val = Integer.parseInt(itemRate);
+
+                itemMap.put(itemName, new Integer[]{val, qty} );
+                etItemName.setText("");
+                etItemValue.setText("");
+                etOtherItemQty.setText("0");
+
+                otherItemsAdapter.notifyDataSetChanged();
+            }
+
             private void addItemToSpinner(String itemName, String itemValue) {
                 items.clear();
-                itemMap.put(itemName, Integer.valueOf(itemValue));
+//                itemMap.put(itemName, Integer.valueOf(itemValue));
+
+                if(!itemMap.containsKey(itemName)) {
+                    int rate = Integer.parseInt(itemValue);
+                    customItemSet.add(new CustomItem(itemName,false, (float) qty.get(), rate));
+                }
+
                 itemMap.forEach((k, v) -> {
                     items.add(k + " = " + v);
                 });
                 etItemName.setText("");
                 etItemValue.setText("");
+                etOtherItemQty.setText("0");
                 spinnerAdapter.notifyDataSetChanged();
             }
         });
@@ -895,7 +1051,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Gson gson = new Gson();
-                String jsonString = gson.toJson(itemMap);
+//                String jsonString = gson.toJson(itemMap);
 
                 System.err.println("MAP json >>> " + itemMap);
 
@@ -906,18 +1062,18 @@ public class MainActivity extends AppCompatActivity {
 
                 if (otherItemsMap != null && otherItemsMap.size() > 0) {
                     otherItemsMap.forEach((k, v) -> {
-                        CustomItem customItem = new CustomItem(k, false, 1, v);
+                        CustomItem customItem = new CustomItem(k, false, v[1], (v[0] * v[1]));
                         otherItemsList.add(customItem);
                         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
                         // Use the editor to put values into SharedPreferences
                         SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putInt(k.toUpperCase(Locale.getDefault()), v);
+                        editor.putInt(k.toUpperCase(Locale.getDefault()), v[0]);
                         // Commit the changes
                         editor.apply();
                     });
                     try {
                         if (otherItemsOnly) {
-                            calculate(new ArrayList<>(), otherItemsList, null, otherItemsOnly);
+                            calculate(new ArrayList<>(), otherItemsF, null, otherItemsOnly);
                             otherItemsList.clear();
                         }
                     } catch (IOException e) {
@@ -1513,6 +1669,22 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.expenseSummary) {
+            Intent intent = new Intent(MainActivity.this, ExpenseSummaryActivity.class);
+            startActivity(intent);
+        }
+
+        if (id == R.id.chooseTheme) {
+            showThemeChooserDialog();
+            return true;
+        }
+
+        if (id == R.id.newUI) {
+            launchNewUI();
+            return true;
+        }
+
+
 
 //        if (id == R.id.action_load_from_file) {
 //            if(!isLoadFromSystem){
@@ -1529,6 +1701,37 @@ public class MainActivity extends AppCompatActivity {
         // Handle other action bar items...
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void launchNewUI() {
+
+        Intent intent = new Intent(this, NewUIActivity.class);
+        startActivity(intent);
+
+    }
+
+    private void showThemeChooserDialog() {
+        String currentTheme = PreferenceManager.getDefaultSharedPreferences(this).getString("app_theme", "Theme.Base.MyApplication");
+
+        int checkedIndex = Arrays.asList(themes).indexOf(currentTheme);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Choose Theme")
+                .setSingleChoiceItems(themes, checkedIndex, (dialog, which) -> {
+                    String selectedTheme = themes[which];
+
+                    SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+                    editor.putString("app_theme", selectedTheme);
+                    editor.apply();
+                    dialog.dismiss();
+
+                    Intent intent = getIntent();
+                    finish(); // Destroy current activity
+                    startActivity(intent); // Start it again
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -1573,15 +1776,19 @@ public class MainActivity extends AppCompatActivity {
 
                 Expense expense = new Expense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
 
-                boolean isInserted = expenseDbHelper.insertExpense(null, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
+                boolean expExists = expenseDbHelper.checkIfExpenseExistsFlag(expCreatedDate);
 
-                if (isInserted) {
-                    ++counter;
-                    //save expense on cloud
-                    saveExpenseOnCloud(this, expense.getExpenseDate(), expense);
+                if(!expExists) {
 
+                    boolean isInserted = expenseDbHelper.insertExpense(null, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
 
+                    if (isInserted) {
+                        ++counter;
+                        //save expense on cloud
+                        saveExpenseOnCloud(this, expense.getExpenseDate(), expense);
+                    }
                 }
+
 
             }
         }
@@ -1623,40 +1830,86 @@ public class MainActivity extends AppCompatActivity {
             Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
         }
 
+        new Thread(new Runnable() {
+            private int counter = 0;
 
-        // Read CSV file
-        BufferedReader reader = new BufferedReader(new FileReader(docsDir));
-        String line;
-        boolean firstLine = true;
-        int counter = 0;
-        while ((line = reader.readLine()) != null) {
+            @Override
+            public void run() {
+                // Notify on the main thread
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, "Restoring is started !", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                // Read CSV file
+                BufferedReader reader = null;
+                try {
+                    reader = new BufferedReader(new FileReader(docsDir));
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+                String line;
+                boolean firstLine = true;
+                while (true) {
+                    try {
+                        if (!((line = reader.readLine()) != null)) break;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
 //            if (firstLine) {
 //                firstLine = false; // Skip header line
 //                continue;
 //            }
 
-            // Split CSV by commas, handling JSON strings with quotes
-            String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+                    // Split CSV by commas, handling JSON strings with quotes
+                    String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
 
-            if (columns.length >= 5) {
-                Long invoiceId = Long.parseLong(columns[0].trim());
-                String itemListJson = columns[1].trim();
-                Long total = Long.parseLong(columns[2].trim());
-                String createdDateTime = columns[3].trim();
-                String createdDate = columns[4].trim();
+                    if (columns.length >= 5) {
+                        Long invoiceId = Long.parseLong(columns[0].trim());
+                        String itemListJson = columns[1].trim();
+                        Long total = Long.parseLong(columns[2].trim());
+                        String createdDateTime = columns[3].trim();
+                        String createdDate = columns[4].trim();
 
-                DtoJson dtoJson = new DtoJson();
-                dtoJson.setCreateddtm(createdDateTime);
-                dtoJson.setDate(createdDate);
+                        DtoJson dtoJson = new DtoJson();
+                        dtoJson.setCreateddtm(createdDateTime);
+                        dtoJson.setDate(createdDate);
 
-                long newRowId = dbHelper.saveInvoiceTransaction(itemListJson, total, MainActivity.this, dtoJson, invoiceId);
-                if (newRowId != -1) {
-                    ++counter;
+                        boolean exists = dbHelper.entryExists(invoiceId, total);
+
+                        if(!exists) {
+                            long newRowId = dbHelper.saveInvoiceTransaction(itemListJson, total, MainActivity.this, dtoJson, invoiceId);
+                            if (newRowId != -1) {
+                                ++counter;
+                            }
+                        }
+                    }
+                }
+
+
+                // Notify on the main thread
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, "[Invoices] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
-        }
-        Toast.makeText(this, "[Invoices] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
-        reader.close();
+        }).start();
+
+
+
+
+
 
 
     }
@@ -2160,7 +2413,7 @@ public class MainActivity extends AppCompatActivity {
 
             // Add customer details
             Paragraph customerDetails = new Paragraph()
-                    .add("From  " + oldDateVal + " to " + newDateVal + "\n")
+                    .add("From  " + getFormattedDate(oldDateVal) + " to " + getFormattedDate(newDateVal) + "\n")
                     .add("Total sales in (Rs) : " + total + "\n\n");
             document.add(customerDetails);
 
@@ -2254,6 +2507,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private String getFormattedDate(String dateVal) {
+        LocalDate localDateFmtted = LocalDate.parse(dateVal, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String month = localDateFmtted.format(DateTimeFormatter.ofPattern("MMM")).toLowerCase();
+
+        String dateFmtted = localDateFmtted.getDayOfMonth()+"-"+ month +"-"+localDateFmtted.getYear();
+        return dateFmtted;
+    }
+
     private List<CustomItem> getParserJsonList(String jsonItemList) {
 
         JsonObject jsonObject = (new JsonParser()).parse(jsonItemList).getAsJsonObject();
@@ -2295,7 +2557,13 @@ public class MainActivity extends AppCompatActivity {
                 List<CustomItem> itemList = getParserJsonList(jsonItemList);
                 for (CustomItem customItem : itemList) {
                     itemVal += Double.valueOf(customItem.getSliderValue());
-                    map.put(customItem.getName(), (int) itemVal);
+
+                    if(map.containsKey(customItem.getName())) {
+                        int itemQty = map.get(customItem.getName());
+                        map.put(customItem.getName(), itemQty + (int) itemVal);
+                    } else {
+                        map.put(customItem.getName(), (int) itemVal);
+                    }
                     itemVal = 0.0d;
                 }
             }
@@ -2355,9 +2623,13 @@ public class MainActivity extends AppCompatActivity {
                 pd.setMessage("Please wait");
                 pd.show();
 //                dbHelper.deleteFireStoreData(MainActivity.this,pd);
+
+                SharedPreferences sharedPreferences = getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+                String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
                 // Reference to the Firebase Realtime Database
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
-                DatabaseReference databaseReference = database.getReference("invoices");
+                DatabaseReference databaseReference = database.getReference(deviceModel+"/"+"invoices");
                 databaseReference.child("/").removeValue()
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
@@ -2369,7 +2641,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
 
-                database.getReference("expenses").child("/").removeValue()
+                database.getReference(deviceModel+"/"+"expenses").child("/").removeValue()
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
                                 pd.dismiss();
