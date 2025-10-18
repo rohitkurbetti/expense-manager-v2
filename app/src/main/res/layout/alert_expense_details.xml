@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded"
+    android:padding="24dp"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/expense" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expense Details"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:layout_marginStart="12dp"
+                android:textColor="#212121" />
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="16dp"
+            android:background="#DDDDDD" />
+
+        <!-- Table Data -->
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stretchColumns="1">
+
+            <!-- DATE -->
+            <TableRow android:paddingBottom="12dp">
+                <TextView
+                    android:text="Date"
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvDate"
+                    android:text="2025-07-28"
+                    android:textColor="#000"
+                    android:textAlignment="textEnd"
+                    android:textSize="16sp" />
+            </TableRow>
+
+            <!-- PARTICULARS -->
+            <TableRow android:paddingBottom="12dp">
+                <TextView
+                    android:text="Particulars"
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvParticulars"
+                    android:text="Dmart"
+                    android:textColor="#000"
+                    android:textAlignment="textEnd"
+                    android:textSize="16sp" />
+            </TableRow>
+
+            <!-- YESTERDAY BALANCE -->
+            <TableRow android:paddingBottom="12dp">
+                <TextView
+                    android:text="Yesterday's Balance"
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvYesterdayBalance"
+                    android:text="₹0"
+                    android:textColor="#000"
+                    android:textAlignment="textEnd"
+                    android:textSize="16sp" />
+            </TableRow>
+
+            <!-- SALES -->
+            <TableRow android:paddingBottom="12dp">
+                <TextView
+                    android:text="Sales"
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvSales"
+                    android:text="₹120"
+                    android:textAlignment="textEnd"
+                    android:textColor="#388E3C"
+                    android:textSize="16sp" />
+            </TableRow>
+
+
+
+            <!-- EXPENSE AMOUNT -->
+            <TableRow android:paddingBottom="12dp">
+                <TextView
+                    android:text="Expense Amount"
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvAmount"
+                    android:text="₹10"
+                    android:textAlignment="textEnd"
+                    android:textColor="#D32F2F"
+                    android:textSize="16sp" />
+            </TableRow>
+
+            <!-- FINAL BALANCE -->
+            <TableRow>
+                <TextView
+                    android:text="Final Balance"
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvBalance"
+                    android:text="₹110"
+                    android:textColor="#1976D2"
+                    android:textSize="16sp"
+                    android:textAlignment="textEnd"
+                    android:textStyle="bold" />
+            </TableRow>
+
+        </TableLayout>
+    </LinearLayout>
+</ScrollView>

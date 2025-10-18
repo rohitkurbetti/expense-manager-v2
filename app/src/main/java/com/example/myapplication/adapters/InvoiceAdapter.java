@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.view.LayoutInflater;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.FileProvider;
 
+import com.example.myapplication.ExpenseActivity;
 import com.example.myapplication.R;
 import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.constants.InvoiceConstants;
@@ -42,6 +44,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class InvoiceAdapter extends BaseAdapter {
@@ -49,6 +52,7 @@ public class InvoiceAdapter extends BaseAdapter {
     private List<Invoice> invoiceList;
     private LayoutInflater inflater;
     private final LinearLayout selectionOverlay;
+    private Set<String> expDates;
 
     public InvoiceAdapter(Context context, List<Invoice> invoiceList, LinearLayout selectionOverlay) {
         this.context = context;
@@ -84,11 +88,25 @@ public class InvoiceAdapter extends BaseAdapter {
         TextView txtTotal = convertView.findViewById(R.id.txtTotal);
         TextView txtCreatedDateTime = convertView.findViewById(R.id.txtCreatedDateTime);
         TextView txtCreatedDate = convertView.findViewById(R.id.txtCreatedDate);
-        ImageView invoiceDetailsBtn = convertView.findViewById(R.id.invoiceDetailsBtn);
         CheckBox checkBoxInvoiceId = convertView.findViewById(R.id.checkBoxInvoiceId);
         ImageView invoiceGeneratorBtn = convertView.findViewById(R.id.invoiceGeneratorBtn);
 
         Invoice invoice = invoiceList.get(position);
+
+        if (expDates.contains(invoice.getCreatedDate())) {
+            txtCreatedDate.setTextColor(context.getColor(R.color.coralPrimaryDark));
+            txtCreatedDate.setTooltipText("Click to add expense");
+            txtCreatedDate.setOnClickListener(v -> {
+                Intent expenseActivityIntent = new Intent(context, ExpenseActivity.class);
+                expenseActivityIntent.putExtra("createdDateTime", invoice.getCreatedDateTime());
+                context.startActivity(expenseActivityIntent);
+                expenseActivityIntent.removeExtra("createdDateTime");
+            });
+
+        } else {
+            txtCreatedDate.setTextColor((Color.LTGRAY));
+            txtCreatedDate.setOnClickListener(null);
+        }
 
         txtInvoiceId.setText("Invoice " + invoice.getInvoiceId());
 //        txtItemList.setText(invoice.getFormattedItemList());
@@ -101,19 +119,18 @@ public class InvoiceAdapter extends BaseAdapter {
         invoiceGeneratorBtn.setOnClickListener(v -> {
 
 
-
 //            List<CustomItem> itemList = getParserJsonList(invoice.getItemListJson());
             Gson gson = new Gson();
-            Type objectType = new TypeToken<DtoJson>() {}.getType();
+            Type objectType = new TypeToken<DtoJson>() {
+            }.getType();
             DtoJson dtoJson = gson.fromJson(invoice.getItemListJson(), objectType);
             File pdfFile = PDFGeneratorUtil.generateInvoice(dtoJson, invoice.getInvoiceId(), context);
             openGeneratedPDF(pdfFile);
 
 
-
         });
-
-        invoiceDetailsBtn.setOnClickListener(v -> invoiceDetails(itemSaleMap));
+        txtInvoiceId.setTextColor(context.getColor(R.color.blueAccent));
+        txtInvoiceId.setOnClickListener(v -> invoiceDetails(itemSaleMap));
 
         checkBoxInvoiceId.setChecked(invoice.getChecked());
 
@@ -123,7 +140,7 @@ public class InvoiceAdapter extends BaseAdapter {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                if(isChecked) {
+                if (isChecked) {
                     List<Invoice> checkedList = invoiceList.stream().map(inv -> {
                         inv.setChecked(true);
                         return inv;
@@ -133,6 +150,12 @@ public class InvoiceAdapter extends BaseAdapter {
                     invoiceList = checkedList;
                     notifyDataSetChanged();
                 } else {
+
+                    long checkedCInvoicesCount = invoiceList.stream().filter(Invoice::getChecked).count();
+
+                    if(checkedCInvoicesCount < 1 || checkedCInvoicesCount == invoiceList.size()) {
+
+
                     List<Invoice> checkedList = invoiceList.stream().map(inv -> {
                         inv.setChecked(false);
                         return inv;
@@ -142,16 +165,19 @@ public class InvoiceAdapter extends BaseAdapter {
                     invoiceList = checkedList;
                     selectionOverlay.setVisibility(View.GONE);
                     notifyDataSetChanged();
+                    }
+
+                    if(checkedCInvoicesCount < invoiceList.size()) {
+                        selAllInvCheckBox.setChecked(false);
+                    }
                 }
 
             }
         });
 
 
-
-
         checkBoxInvoiceId.setOnCheckedChangeListener((v, isChecked) -> {
-            if(isChecked) {
+            if (isChecked) {
                 invoice.setChecked(true);
             } else {
                 invoice.setChecked(false);
@@ -159,7 +185,7 @@ public class InvoiceAdapter extends BaseAdapter {
 
             boolean isCheckedAny = invoiceList.stream().anyMatch(Invoice::getChecked);
 
-            if(isCheckedAny) {
+            if (isCheckedAny) {
                 //show delete button
                 selectionOverlay.setVisibility(View.VISIBLE);
             } else {
@@ -168,7 +194,13 @@ public class InvoiceAdapter extends BaseAdapter {
             }
 
             long checkedCInvoicesCount = invoiceList.stream().filter(Invoice::getChecked).count();
-            InvoicesFragment.itemSelectedTxt.setText(checkedCInvoicesCount+" Items selected");
+            InvoicesFragment.itemSelectedTxt.setText(checkedCInvoicesCount + " Items selected");
+
+            if(checkedCInvoicesCount <invoiceList.size()) {
+                selAllInvCheckBox.setChecked(false);
+            } else {
+                selAllInvCheckBox.setChecked(true);
+            }
 
         });
 
@@ -195,7 +227,8 @@ public class InvoiceAdapter extends BaseAdapter {
         JsonArray listArr = jsonObject.getAsJsonArray("itemList");
         JsonArray listOtherArr = jsonObject.getAsJsonArray("otherItemsList");
         Gson gson = new Gson();
-        Type listType = new TypeToken<List<CustomItem>>() {}.getType();
+        Type listType = new TypeToken<List<CustomItem>>() {
+        }.getType();
         List<CustomItem> itemList = gson.fromJson(listArr, listType);
         List<CustomItem> otherItemList = gson.fromJson(listOtherArr, listType);
         itemList.addAll(otherItemList);
@@ -206,7 +239,7 @@ public class InvoiceAdapter extends BaseAdapter {
 
         List<Item> items = new ArrayList<>();
 
-        for(Map.Entry<String, Integer[]> entry : itemSaleMap.entrySet()) {
+        for (Map.Entry<String, Integer[]> entry : itemSaleMap.entrySet()) {
             String itemName = entry.getKey();
             int itemRate = entry.getValue()[0];
             int itemQty = entry.getValue()[1];
@@ -215,7 +248,7 @@ public class InvoiceAdapter extends BaseAdapter {
                     itemQty * InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(itemName.toUpperCase(), 0) :
                     itemRate;
 
-            if(amount==0) {
+            if (amount == 0) {
                 amount = itemRate * itemQty;
             }
 
@@ -250,7 +283,7 @@ public class InvoiceAdapter extends BaseAdapter {
 
         int gTotal = items.stream().mapToInt(i -> i.getItemAmount()).sum();
 
-        grandTotalTextView.setText(String.valueOf("  \u20B9"+gTotal));
+        grandTotalTextView.setText(String.valueOf("  \u20B9" + gTotal));
 
         Button btnClose = dialogView.findViewById(R.id.btnClosePopup);
 
@@ -261,7 +294,6 @@ public class InvoiceAdapter extends BaseAdapter {
         // Show the dialog
         AlertDialog dialog = builder.create();
         dialog.show();
-
 
 
         // Close button handler
@@ -277,6 +309,11 @@ public class InvoiceAdapter extends BaseAdapter {
 
     public void updateList(List<Invoice> filteredList) {
         invoiceList = filteredList;
+        notifyDataSetChanged();
+    }
+
+    public void updateInvoicesNotHavingExpenses(Set<String> expDates) {
+        this.expDates = expDates;
         notifyDataSetChanged();
     }
 }

@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -72,7 +73,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         final StringBuilder currentInput = currentInputQuantities.get(product.getName());
 
         // Update the main action button's icon based on product quantity
-        updateMainActionButton(holder, holder.buttonMainAction, product.getQuantity(), 0, 0, 0);
+//        updateMainActionButton(holder, holder.buttonMainAction, product.getQuantity(), 0, 0, 0);
 
         // --- Listeners for Quantity Grid Buttons ---
         View.OnClickListener gridButtonListener = v -> {
@@ -192,17 +193,94 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             List<Product> secProductList = new ArrayList<>();
             secProductList.addAll(productList);
             if (product.getQuantity() > 0) {
+
+                //get list2
+                String json1 = sharedPreferences.getString(NewUIActivity.SELECTED_PRODUCTS_KEY, "");
+                List<Product> parsedList1 = parseJsonList(json1);
+
+//                Toast.makeText(context, "from SP before"+parsedList1.toString(), Toast.LENGTH_SHORT).show();
+
+
+                //get list2
+                String json2 = sharedPreferences.getString(NewUIActivity.SELECTED_PRODUCTS_KEY2, "");
+                List<Product> parsedList2 = parseJsonList(json2);
+
+//get list2
+                String json3 = sharedPreferences.getString(NewUIActivity.SELECTED_PRODUCTS_KEY3, "");
+                List<Product> parsedList3 = parseJsonList(json3);
+
+                sharedPreferences.edit().putString(SELECTED_PRODUCTS_KEY4, gson.toJson(parsedList3)).apply();
+
+
+                sharedPreferences.edit().putString(SELECTED_PRODUCTS_KEY3, gson.toJson(parsedList2)).apply();
+
+
+
+
+
+                sharedPreferences.edit().putString(SELECTED_PRODUCTS_KEY2, gson.toJson(parsedList1)).apply();
+
+
+
+
                 setSecProdList(holder, secProductList, position);
 
                 product.setQuantity(product.getQuantity() - 1);
+
+                String prodList1 = gson.toJson(productList);
+
+                sharedPreferences.edit().putString(SELECTED_PRODUCTS_KEY, prodList1).apply();
+
+                //get list2
+                String jsonAfter = sharedPreferences.getString(NewUIActivity.SELECTED_PRODUCTS_KEY, "");
+                List<Product> parsedListAfter = parseJsonList(jsonAfter);
+
+//                Toast.makeText(context, "from SP after"+parsedListAfter.toString(), Toast.LENGTH_SHORT).show();
+//
+//                Toast.makeText(context, "from Adater List "+productList.toString(), Toast.LENGTH_SHORT).show();
+
+
             } else {
                 product.setQuantity(0); // Ensure it doesn't go below zero
             }
-            // Clear any pending input for this product
-            currentInput.setLength(0);
-            holder.textCurrentQuantityInput.setVisibility(View.GONE);
 
-            updateMainActionButton(holder, holder.buttonMainAction, product.getQuantity(), 0, 0, 0);
+
+            String j1 = sharedPreferences.getString(SELECTED_PRODUCTS_KEY, "");
+            String j2 = sharedPreferences.getString(SELECTED_PRODUCTS_KEY2, "");
+            String j3 = sharedPreferences.getString(SELECTED_PRODUCTS_KEY3, "");
+            String j4 = sharedPreferences.getString(SELECTED_PRODUCTS_KEY4, "");
+
+
+            List<Product> prodList2 = parseJsonList(j2);
+            int qty2=0;
+            for (Product p : prodList2) {
+                if(p.getName().equalsIgnoreCase(product.getName())) {
+                    qty2 = p.getQuantity();
+                }
+            }
+
+            List<Product> prodList3 = parseJsonList(j3);
+            int qty3=0;
+            for (Product p : prodList3) {
+                if(p.getName().equalsIgnoreCase(product.getName())) {
+                    qty3 = p.getQuantity();
+                }
+            }
+
+            List<Product> prodList4 = parseJsonList(j4);
+            int qty4=0;
+            for (Product p : prodList4) {
+                if(p.getName().equalsIgnoreCase(product.getName())) {
+                    qty4 = p.getQuantity();
+                }
+            }
+
+
+            Log.i("primary prod list ", parseJsonList(j1).toString());
+            Log.i("sec prod list ", parseJsonList(j2).toString());
+            Log.i("thi prod list ", parseJsonList(j3).toString());
+            Log.i("four prod list ", parseJsonList(j4).toString());
+            updateMainActionButton(holder, holder.buttonMainAction, product.getQuantity(), qty2, qty3, qty4);
             onQuantityChangedCallback.accept(null); // Notify MainActivity to save
         });
     }

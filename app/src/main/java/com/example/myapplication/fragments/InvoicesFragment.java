@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,6 +15,8 @@ import android.graphics.Typeface;
 import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,6 +41,7 @@ import com.example.myapplication.R;
 import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.adapters.InvoiceAdapter;
 import com.example.myapplication.database.DatabaseHelper;
+import com.example.myapplication.database.ExpenseDbHelper;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.Invoice;
 import com.example.myapplication.dtos.Item;
@@ -87,12 +91,14 @@ public class InvoicesFragment extends Fragment {
     private ImageView invoiceFilterButton;
     private LinearLayout invoicesFilterHeader;
     private ImageView barChartMonthly, barReportBtn;
+    SharedPreferences sharedPreferences;
+
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_invoices, container, false);
-
+        sharedPreferences = getActivity().getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
         db = new DatabaseHelper(view.getContext());
         progressDialog = new ProgressDialog(getContext());
         listView = view.findViewById(R.id.listView);
@@ -138,6 +144,7 @@ public class InvoicesFragment extends Fragment {
 
         try {
             getAllInvoicesFromInDb(progressDialog, adapter, filteredList);
+
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -565,123 +572,141 @@ public class InvoicesFragment extends Fragment {
         long startTime = System.currentTimeMillis();
 
         Cursor cursor = db.getAllInvoices();
+        int delayed = sharedPreferences.getInt("invoiceFragmentLoadingDelay",1000);
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(() -> {
+            new Thread(new Runnable() {
+                private int totalSum = 0;
+                int totalList = cursor.getCount();
 
-        new Thread(new Runnable() {
-            private int totalSum = 0;
-            int totalList = cursor.getCount();
+                @Override
+                public void run() {
 
-            @Override
-            public void run() {
+                    if (cursor.getCount() > 0) {
 
-                if (cursor.getCount() > 0) {
-
-                    int progressCount = 0;
-                    requireActivity().runOnUiThread(() -> {
-                        progressDialog.setCancelable(false);
-                        progressDialog.setTitle("Invoice Data");
-                        progressDialog.show();
-                        listView.setVisibility(View.VISIBLE);
-                        noSqliteDataImageView.setVisibility(View.GONE);
-                        noSqliteDataTextView.setVisibility(View.GONE);
-                    });
-
-
-                    invoiceList.clear();
-                    int qty = 0;
-                    int amount = 0;
-                    while (cursor.moveToNext()) {
-                        int invId = cursor.getInt(0);
-                        String itemListJson = cursor.getString(1);
-                        long total = cursor.getLong(2);
-                        String createdDateTime = cursor.getString(3);
-                        String createdDate = cursor.getString(4);
-
-                        ObjectMapper objectMapper = new ObjectMapper();
-
-                        DtoJson itemObject = null;
-                        try {
-                            itemObject = objectMapper.readValue(itemListJson, DtoJson.class);
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        List<CustomItem> items = itemObject.getItemList();
-                        List<CustomItem> otherItems = itemObject.getOtherItemsList();
-
-                        if (!otherItems.isEmpty()) {
-                            items.addAll(otherItems);
-                        }
-
-                        Map<String, Integer[]> itemSaleMap = new HashMap<>();
-
-                        for (CustomItem i : items) {
-                            if (itemSaleMap.containsKey(i.getName())) {
-                                int tempQty = itemSaleMap.get(i.getName())[1];
-                                qty = (int) i.getSliderValue() + tempQty;
-                                amount = i.getAmount();
-                                itemSaleMap.put(i.getName(), new Integer[]{amount, qty});
-                            } else {
-                                amount = 0;
-                                qty = (int) i.getSliderValue();
-                                amount = amount + i.getAmount();
-                                itemSaleMap.put(i.getName(), new Integer[]{amount, (int) i.getSliderValue()});
-
-
-                            }
-                        }
-                        invoiceList.add(new Invoice(invId, itemListJson, total, createdDateTime, createdDate, itemSaleMap));
-
-                        int progress = (int) (((progressCount + 1) / (float) totalList) * 100);
-                        // Update progress bar and text on UI thread
-                        int finalProgressCount = progressCount;
+                        int progressCount = 0;
                         requireActivity().runOnUiThread(() -> {
+                            progressDialog.setCancelable(false);
+                            progressDialog.setTitle("Invoice Data");
+                            progressDialog.show();
+                            listView.setVisibility(View.VISIBLE);
+                            noSqliteDataImageView.setVisibility(View.GONE);
+                            noSqliteDataTextView.setVisibility(View.GONE);
+                        });
+
+
+                        invoiceList.clear();
+                        int qty = 0;
+                        int amount = 0;
+                        while (cursor.moveToNext()) {
+                            int invId = cursor.getInt(0);
+                            String itemListJson = cursor.getString(1);
+                            long total = cursor.getLong(2);
+                            String createdDateTime = cursor.getString(3);
+                            String createdDate = cursor.getString(4);
+
+                            ObjectMapper objectMapper = new ObjectMapper();
+
+                            DtoJson itemObject = null;
+                            try {
+                                itemObject = objectMapper.readValue(itemListJson, DtoJson.class);
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            List<CustomItem> items = itemObject.getItemList();
+                            List<CustomItem> otherItems = itemObject.getOtherItemsList();
+
+                            if (!otherItems.isEmpty()) {
+                                items.addAll(otherItems);
+                            }
+
+                            Map<String, Integer[]> itemSaleMap = new HashMap<>();
+
+                            for (CustomItem i : items) {
+                                if (itemSaleMap.containsKey(i.getName())) {
+                                    int tempQty = itemSaleMap.get(i.getName())[1];
+                                    qty = (int) i.getSliderValue() + tempQty;
+                                    amount = i.getAmount();
+                                    itemSaleMap.put(i.getName(), new Integer[]{amount, qty});
+                                } else {
+                                    amount = 0;
+                                    qty = (int) i.getSliderValue();
+                                    amount = amount + i.getAmount();
+                                    itemSaleMap.put(i.getName(), new Integer[]{amount, (int) i.getSliderValue()});
+
+
+                                }
+                            }
+                            invoiceList.add(new Invoice(invId, itemListJson, total, createdDateTime, createdDate, itemSaleMap));
+
+                            int progress = (int) (((progressCount + 1) / (float) totalList) * 100);
+                            // Update progress bar and text on UI thread
+                            int finalProgressCount = progressCount;
+                            requireActivity().runOnUiThread(() -> {
 //                            progressDialog.setProgress(progress);
 // ** do not remove           progressDialog.setMessage("Processed "+finalProgressCount +"/"+totalList +" records  "+ progress + "%");
-                            progressDialog.setMessage("Fetching records " + progress + "%");
+                                progressDialog.setMessage("Fetching records " + progress + "%");
+                            });
+                            progressCount++;
+
+                        }
+
+                        requireActivity().runOnUiThread(() -> {
+                            totalRecordsTextView.setText("Total Records: " + cursor.getCount());
+
                         });
-                        progressCount++;
+                        OptionalInt totalSumOptional = invoiceList.stream().mapToInt(i -> (int) i.getTotal()).reduce((a, b) -> a + b);
+                        if (totalSumOptional.isPresent()) {
+                            totalSum = totalSumOptional.getAsInt();
+                        }
+                        requireActivity().runOnUiThread(() -> {
+                            totalAmountTextView.setText("Total: " + INR_SYMBOL + totalSum);
 
+                            filteredList.clear();
+                            filteredList.addAll(invoiceList);
+                            adapter.notifyDataSetChanged();
+
+
+                        });
+                    } else {
+                        requireActivity().runOnUiThread(() -> {
+                            listView.setVisibility(View.GONE);
+                            noSqliteDataImageView.setVisibility(View.VISIBLE);
+                            noSqliteDataTextView.setVisibility(View.VISIBLE);
+                            totalRecordsTextView.setText("Total Records: " + cursor.getCount());
+                            totalAmountTextView.setText("Total: " + INR_SYMBOL + "0");
+                        });
+
+                    }
+//                totalSum=0;
+                    long endTime = System.currentTimeMillis();
+                    long elapsedMillis = endTime - startTime;
+
+                    requireActivity().runOnUiThread(() -> {
+                        String timeFormatted = formatMillisToMinSec(elapsedMillis);
+
+                        progressDialog.dismiss();
+                    });
+                    Set<String> expDates;
+                    //find List<String> invoice dates;
+                    Set<String> invoiceDates = invoiceList.stream().map(Invoice::getCreatedDate).collect(Collectors.toSet());
+                    if (!invoiceDates.isEmpty()) {
+                        ExpenseDbHelper expenseDbHelper = new ExpenseDbHelper(getContext());
+                        expDates = expenseDbHelper.getExpensesByDates(invoiceDates);
+                    } else {
+                        expDates = null;
                     }
 
                     requireActivity().runOnUiThread(() -> {
-                        totalRecordsTextView.setText("Total Records: " + cursor.getCount());
-
+                        adapter.updateInvoicesNotHavingExpenses(expDates);
                     });
-                    OptionalInt totalSumOptional = invoiceList.stream().mapToInt(i -> (int) i.getTotal()).reduce((a, b) -> a + b);
-                    if (totalSumOptional.isPresent()) {
-                        totalSum = totalSumOptional.getAsInt();
-                    }
-                    requireActivity().runOnUiThread(() -> {
-                        totalAmountTextView.setText("Total: " + INR_SYMBOL + totalSum);
 
-                        filteredList.clear();
-                        filteredList.addAll(invoiceList);
-                        adapter.notifyDataSetChanged();
-
-
-                    });
-                } else {
-                    requireActivity().runOnUiThread(() -> {
-                        listView.setVisibility(View.GONE);
-                        noSqliteDataImageView.setVisibility(View.VISIBLE);
-                        noSqliteDataTextView.setVisibility(View.VISIBLE);
-                        totalRecordsTextView.setText("Total Records: " + cursor.getCount());
-                        totalAmountTextView.setText("Total: " + INR_SYMBOL + "0");
-                    });
 
                 }
-//                totalSum=0;
-                long endTime = System.currentTimeMillis();
-                long elapsedMillis = endTime - startTime;
+            }).start();
+        }, delayed);
 
-                requireActivity().runOnUiThread(() -> {
-                    String timeFormatted = formatMillisToMinSec(elapsedMillis);
-
-                    Toast.makeText(getContext(), "Execution time: " + timeFormatted, Toast.LENGTH_SHORT).show();
-                    progressDialog.dismiss();
-                });
-            }
-        }).start();
     }
 
     public String formatMillisToMinSec(long millis) {
@@ -694,6 +719,21 @@ public class InvoicesFragment extends Fragment {
         } else {
             return String.format("%ds", seconds);
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        //find List<String> invoice dates;
+        requireActivity().runOnUiThread(() -> {
+            Set<String> invoiceDates = invoiceList.stream().map(Invoice::getCreatedDate).collect(Collectors.toSet());
+            if (!invoiceDates.isEmpty()) {
+                ExpenseDbHelper expenseDbHelper = new ExpenseDbHelper(getContext());
+                Set<String> expDates = expenseDbHelper.getExpensesByDates(invoiceDates);
+                adapter.updateInvoicesNotHavingExpenses(expDates);
+            }
+        });
+
     }
 }
 

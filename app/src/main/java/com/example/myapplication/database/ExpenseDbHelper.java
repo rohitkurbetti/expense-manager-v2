@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import android.content.ContentValues;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.example.myapplication.ExpenseActivity;
@@ -24,6 +25,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -83,9 +85,9 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         values.put(COLUMN_YESTERDAYS_BALANCE, yesterdaysBalance);
         values.put(COLUMN_SALES, todaysSales);
         values.put(COLUMN_BALANCE, balance);
-        if(id != null) {
+        if (id != null) {
             values.put(COLUMN_ID, id);
-            result = db.update(TABLE_EXPENSES, values,"id=?",new String[] {String.valueOf(id)});
+            result = db.update(TABLE_EXPENSES, values, "id=?", new String[]{String.valueOf(id)});
         } else {
             result = db.insert(TABLE_EXPENSES, null, values);
         }
@@ -103,10 +105,10 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
     public long getYesterdaysBalance(String yesterDay) {
         long balance = 0L;
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT "+ COLUMN_BALANCE +" FROM "+ TABLE_EXPENSES + " where "+COLUMN_DATE+"=?";
+        String query = "SELECT " + COLUMN_BALANCE + " FROM " + TABLE_EXPENSES + " where " + COLUMN_DATE + "=?";
         Cursor cursor = db.rawQuery(query, new String[]{yesterDay});
-        if(cursor.getCount()>0) {
-            while(cursor.moveToNext()) {
+        if (cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
                 balance = Long.parseLong(String.valueOf(cursor.getInt(0)));
             }
         }
@@ -115,9 +117,9 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public Cursor checkIfExpenseExists(String date) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM "+ TABLE_EXPENSES + " where "+COLUMN_DATE+"=?";
+        String query = "SELECT * FROM " + TABLE_EXPENSES + " where " + COLUMN_DATE + "=?";
         Cursor cursor = db.rawQuery(query, new String[]{date});
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             return cursor;
         }
         return null;
@@ -125,9 +127,9 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public boolean checkIfExpenseExistsFlag(String date) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM "+ TABLE_EXPENSES + " where "+COLUMN_DATE+"=?";
+        String query = "SELECT * FROM " + TABLE_EXPENSES + " where " + COLUMN_DATE + "=?";
         Cursor cursor = db.rawQuery(query, new String[]{date});
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             return true;
         }
         return false;
@@ -135,12 +137,12 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public List<ExpenseRecyclerView> getAllExpenses(ExpenseRecyclerViewAdapter expenseRecyclerViewAdapter) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM "+ TABLE_EXPENSES + " order by id desc";
+        String query = "SELECT * FROM " + TABLE_EXPENSES + " order by id desc";
         Cursor cursor = db.rawQuery(query, null);
 
         List<ExpenseRecyclerView> expenseRecyclerViewList = new ArrayList<>();
 
-        if(cursor!=null && cursor.getCount()>0) {
+        if (cursor != null && cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
 
                 int id = cursor.getInt(0);
@@ -154,7 +156,7 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
             }
         }
-        if(expenseRecyclerViewAdapter != null && !expenseRecyclerViewList.isEmpty()){
+        if (expenseRecyclerViewAdapter != null && !expenseRecyclerViewList.isEmpty()) {
             ExpenseActivity.expenseItems.clear();
             ExpenseActivity.expenseItems.addAll(expenseRecyclerViewList);
             expenseRecyclerViewAdapter.notifyDataSetChanged();
@@ -164,7 +166,7 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public Cursor getAllExpenses() {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by "+COLUMN_DATE+" desc ", null);
+        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by " + COLUMN_DATE + " desc ", null);
     }
 
 
@@ -182,8 +184,8 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         }
 
         // Build the final SQL query
-        String sql = "DELETE FROM "+ TABLE_EXPENSES +" WHERE id IN (" + placeholders + ")";
-        Log.d(">>",expenseIds+" "+sql);
+        String sql = "DELETE FROM " + TABLE_EXPENSES + " WHERE id IN (" + placeholders + ")";
+        Log.d(">>", expenseIds + " " + sql);
         // Convert Set<Integer> to String[] for binding arguments
         String[] args = expenseIds.stream()
                 .map(String::valueOf)
@@ -214,7 +216,7 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         values.put(COLUMN_SALES, expense.getSales());
         values.put(COLUMN_BALANCE, expense.getBalance());
         values.put(COLUMN_ID, id);
-            result = db.update(TABLE_EXPENSES, values,"id=?",new String[] {String.valueOf(id)});
+        result = db.update(TABLE_EXPENSES, values, "id=?", new String[]{String.valueOf(id)});
         db.close();
         return result;
     }
@@ -233,18 +235,17 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(expId), expDate});
 
 
-
         return rowsAffected;
     }
 
     public String getMaxDateFromExpenses() {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT MAX("+ COLUMN_DATE +") FROM " + TABLE_EXPENSES;
+        String query = "SELECT MAX(" + COLUMN_DATE + ") FROM " + TABLE_EXPENSES;
         Cursor cursor = db.rawQuery(query, null);
         String maxDate = null;
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
-                 maxDate = cursor.getString(0);
+                maxDate = cursor.getString(0);
             }
         }
         return maxDate;
@@ -259,9 +260,9 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
     public List<String> checkForMissingExpenses() {
         SQLiteDatabase db = this.getReadableDatabase();
         List<String> missingExpDates = new ArrayList<>();
-        String query = "SELECT "+ COLUMN_DATE +" FROM " + TABLE_EXPENSES + " where yesterdaysBalance <= 0 ";
+        String query = "SELECT " + COLUMN_DATE + " FROM " + TABLE_EXPENSES + " where yesterdaysBalance <= 0 ";
         Cursor cursor = db.rawQuery(query, null);
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
                 missingExpDates.add(cursor.getString(0));
             }
@@ -271,12 +272,12 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public List<Expense> getAllExpenseParsedList() {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM "+ TABLE_EXPENSES + " order by id desc";
+        String query = "SELECT * FROM " + TABLE_EXPENSES + " order by id desc";
         Cursor cursor = db.rawQuery(query, null);
 
         List<Expense> expenseList = new ArrayList<>();
 
-        if(cursor!=null && cursor.getCount()>0) {
+        if (cursor != null && cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
 
                 int id = cursor.getInt(0);
@@ -298,9 +299,9 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
     public List<String> getMissingInvoicesParsedList() {
         SQLiteDatabase db = this.getReadableDatabase();
         List<String> missingExpDates = new ArrayList<>();
-        String query = "SELECT "+ COLUMN_DATE +" FROM " + TABLE_EXPENSES + " where sales = 0 ";
+        String query = "SELECT " + COLUMN_DATE + " FROM " + TABLE_EXPENSES + " where sales = 0 ";
         Cursor cursor = db.rawQuery(query, null);
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
                 missingExpDates.add(cursor.getString(0));
             }
@@ -311,9 +312,9 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
     public String findMinExpDate() {
         String minDate = null;
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT MIN("+ COLUMN_DATE +") FROM " + TABLE_EXPENSES;
+        String query = "SELECT MIN(" + COLUMN_DATE + ") FROM " + TABLE_EXPENSES;
         Cursor cursor = db.rawQuery(query, null);
-        if(cursor.getCount()>0) {
+        if (cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
                 minDate = cursor.getString(0);
             }
@@ -326,7 +327,7 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         progressDialog.show();
         List<Expense> selExpIds = expenseList.stream().filter(Expense::getChecked).collect(Collectors.toList());
 
-        if(!selExpIds.isEmpty()) {
+        if (!selExpIds.isEmpty()) {
 
             selExpIds.forEach(expense -> {
                 String date = expense.getExpenseDate();
@@ -337,8 +338,8 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
                 SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
                 String deviceModel = sharedPreferences.getString("model", Build.MODEL);
 
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"expenses");
-                databaseReference.child("/"+ formattedOnlyYear +"/"+ formattedMonthYear +"/"+ date +"/").removeValue()
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/" + "expenses");
+                databaseReference.child("/" + formattedOnlyYear + "/" + formattedMonthYear + "/" + date + "/").removeValue()
                         .addOnSuccessListener(unused -> {
                             progressDialog.dismiss();
                         })
@@ -386,6 +387,34 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
             e.printStackTrace();
             return "Invalid Date";
         }
+    }
+
+    public Set<String> getExpensesByDates(Set<String> invoiceDates) {
+        Set<String> finalSet = new HashSet<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Set<String> expDates = new HashSet<>();
+        String inClause = TextUtils.join(",", invoiceDates);
+
+        String query = "SELECT " + COLUMN_DATE + " FROM " + TABLE_EXPENSES + " WHERE " + COLUMN_DATE + " NOT IN (" + inClause + ")";
+
+        Cursor cursor = db.rawQuery(query, null);
+        if (cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+
+                String date = cursor.getString(0);
+                expDates.add(date);
+
+            }
+
+        }
+
+        invoiceDates.forEach(i -> {
+            if(!expDates.contains(i)) {
+                Log.i(" >>>>>><<< ", " not found :: " + i);
+                finalSet.add(i);
+            }
+        });
+        return finalSet;
     }
 }
 

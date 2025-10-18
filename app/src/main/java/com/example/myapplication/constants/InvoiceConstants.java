@@ -80,6 +80,7 @@ public class InvoiceConstants {
     private static final int MANGO_RATE = 20;
     private static final int PISTA_RATE = 20;
     private static final int STRWBRY_RATE = 20;
+    public static final String CLOUD_EXPORT_JSON_FILE_NAME = "invoices_export";
 
 
 

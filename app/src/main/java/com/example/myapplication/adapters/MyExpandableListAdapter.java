@@ -157,33 +157,19 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
                     if (expense != null) {
                         AlertDialog.Builder builder = new AlertDialog.Builder(context);
 
-                        builder.setIcon(R.drawable.expense);
+                        View dialogView = LayoutInflater.from(context).inflate(R.layout.alert_expense_details, null, false);
 
-                        StringBuilder stringBuilder = new StringBuilder();
+                        builder.setView(dialogView);
 
-                        stringBuilder.append("Expense Particulars: ");
-                        stringBuilder.append(expense.getExpensePart());
-                        stringBuilder.append("\n");
-                        stringBuilder.append("Expense Date: ");
-                        stringBuilder.append(expense.getExpenseDate());
-                        stringBuilder.append("\n");
-                        stringBuilder.append("Expense amount: ");
-                        stringBuilder.append(expense.getExpenseAmount());
-                        stringBuilder.append("\n");
-                        stringBuilder.append("Yesterdays balance: ");
-                        stringBuilder.append(expense.getYesterdaysBalance());
-                        stringBuilder.append("\n");
-                        stringBuilder.append("Sales: ");
-                        stringBuilder.append(expense.getSales());
-                        stringBuilder.append("\n");
-                        stringBuilder.append("Expense Balance: ");
-                        stringBuilder.append(expense.getBalance());
-                        stringBuilder.append("\n");
-
-                        builder.setMessage(stringBuilder.toString());
+                        // Set data to TextViews
+                        ((TextView) dialogView.findViewById(R.id.tvDate)).setText(expense.getExpenseDate());
+                        ((TextView) dialogView.findViewById(R.id.tvParticulars)).setText(expense.getExpensePart());
+                        ((TextView) dialogView.findViewById(R.id.tvSales)).setText("₹" + expense.getSales());
+                        ((TextView) dialogView.findViewById(R.id.tvYesterdayBalance)).setText("₹" + expense.getYesterdaysBalance());
+                        ((TextView) dialogView.findViewById(R.id.tvAmount)).setText("₹" + expense.getExpenseAmount());
+                        ((TextView) dialogView.findViewById(R.id.tvBalance)).setText("₹" + expense.getBalance());
 
 
-                        builder.setTitle("Expense details");
                         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {

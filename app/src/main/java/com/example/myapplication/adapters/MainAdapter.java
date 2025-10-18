@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Build;
@@ -126,6 +127,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
                     showSnackbarWithOpenAction(pdfFile, v);
                 }
                 amountGrandtotal=0;
+                mapResovled.clear();
+                amountMap.clear();
             }
         });
 
@@ -190,11 +193,13 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
 
                 });
     }
+    int otherAmount = 0;
 
     private Map<String, Integer> parseJsonAndCalculate(List<DtoJsonEntity> expenseItemList) {
 
         int qty=0;
         int amount=0;
+        otherAmount = 0;
         Map<String, Integer> itemSaleMap = new HashMap<>();
         for (DtoJsonEntity item : expenseItemList) {
             String itemJson = item.getItemListJsonStr();
@@ -216,21 +221,43 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
                     if (itemSaleMap.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
                         int tempQty = itemSaleMap.get(i.getName().toUpperCase(Locale.ENGLISH));
                         qty = (int) i.getSliderValue() + tempQty;
-                        amount = amount + i.getAmount();
+                        if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                            otherAmount = otherAmount + i.getAmount();
+                        } else {
+                            amount = amount + i.getAmount();
+                        }
+
                         itemSaleMap.put(i.getName().toUpperCase(Locale.ENGLISH), qty);
                         item.setName(i.getName());
                     } else {
                         amount = 0;
+                        otherAmount = 0;
                         itemSaleMap.put(i.getName().toUpperCase(Locale.ENGLISH), (int) i.getSliderValue());
                         qty = (int) i.getSliderValue();
-                        amount = amount + i.getAmount();
+                        if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                            otherAmount = otherAmount + i.getAmount();
+                        } else {
+                            amount = amount + i.getAmount();
+                        }
                         item.setName(i.getName());
+                        item.setQty(Long.valueOf(qty));
 
                     }
-                    amountMap.put(i.getName().toUpperCase(Locale.ENGLISH), amount);
+                    if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                        int amt = amountMap.getOrDefault(i.getName().toUpperCase(Locale.ENGLISH),0);
+                        int i1 = i.getAmount() + amt;
+                        amountMap.put(i.getName().toUpperCase(Locale.ENGLISH), i1);
+                    } else {
+                        amountMap.put(i.getName().toUpperCase(Locale.ENGLISH), amount);
+                    }
                 }
-                item.setQty(Long.valueOf(qty));
-                item.setTotal(Long.valueOf(amount));
+                if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(item.getName().toUpperCase(Locale.ENGLISH))) {
+                    item.setTotal(Long.valueOf(otherAmount));
+                } else {
+
+                    item.setTotal(Long.valueOf(amount));
+                }
+
 
 
             } catch (Exception e) {
@@ -239,6 +266,7 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
         }
         System.err.println("map: "+ itemSaleMap);
         System.err.println("amountMap: "+ amountMap);
+//        amountMap.clear();
         return itemSaleMap;
     }
 
@@ -249,60 +277,109 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
         Paint titlePaint = new Paint();
         Paint totalPaint = new Paint();
 
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(300, 600, 1).create();
-        PdfDocument.Page page = pdfDocument.startPage(pageInfo);
-        Canvas canvas = page.getCanvas();
+        // Page dimensions
+        int pageWidth = 300;
+        int pageHeight = 600;
 
-        // Title
+        // Margins and positions
+        int leftMargin = 10;
+        int rightMargin = 10;
+        int topMargin = 40;
+        int bottomMargin = 40;
+
+        // Current Y position and line height
+        int currentY = topMargin;
+        int lineHeight = 20;
+
+        // Table positions
+        int productColX = 30;
+        int quantityColX = 140;
+        int amountColX = 220;
+
+        // Start first page
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page currentPage = pdfDocument.startPage(pageInfo);
+        Canvas canvas = currentPage.getCanvas();
+
+        // Title (only on first page)
         titlePaint.setTextAlign(Paint.Align.CENTER);
         titlePaint.setColor(Color.BLACK);
-        titlePaint.setTextSize(18f);
-        canvas.drawText("Monthly Sales Report ("+monthName+")", pageInfo.getPageWidth() / 2, 40, titlePaint);
+        titlePaint.setTextSize(16f);
+        canvas.drawText("Monthly Sales Report ("+monthName+")", pageWidth / 2, currentY, titlePaint);
+        currentY += 40;
 
-        // Total
+        // Total (only on first page)
         totalPaint.setTextAlign(Paint.Align.LEFT);
         totalPaint.setColor(Color.BLACK);
         totalPaint.setTextSize(13f);
-        canvas.drawText("Total \u20B9"+amountGrandtotal, 15, 60, totalPaint);
-
+        canvas.drawText("Total \u20B9"+amountGrandtotal, 15, currentY, totalPaint);
+        currentY += 40;
 
         // Table headers
         paint.setTextAlign(Paint.Align.LEFT);
         paint.setColor(Color.BLACK);
         paint.setTextSize(12f);
-        canvas.drawText("Product", 30, 100, paint);
-        canvas.drawText("Quantity", 140, 100, paint);
-        canvas.drawText("Amount", 220, 100, paint);
+        paint.setTypeface(Typeface.MONOSPACE);
+        canvas.drawText("Product", productColX, currentY, paint);
+        canvas.drawText("Quantity", quantityColX, currentY, paint);
+        canvas.drawText("Amount", amountColX, currentY, paint);
+        currentY += 10;
 
-        // Draw horizontal line
-        canvas.drawLine(10, 110, pageInfo.getPageWidth() - 10, 110, paint);
+        // Draw horizontal line under headers
+        canvas.drawLine(leftMargin, currentY, pageWidth - rightMargin, currentY, paint);
+        currentY += 20;
 
         // Table rows
-        final int[] y = {130};
+        for (Map.Entry<String, Integer> entry : mainItemList.entrySet()) {
+            String product = entry.getKey();
+            Integer quantity = entry.getValue();
 
-        // Table headers
-        paint.setTextAlign(Paint.Align.LEFT);
-        paint.setColor(Color.BLACK);
-        paint.setTextSize(12f);
-        mainItemList.forEach((k,v) -> {
-            canvas.drawText(k+"", 30, y[0], paint);
-            canvas.drawText(String.valueOf(v), 140, y[0], paint);
-            canvas.drawText(String.valueOf(InvoiceConstants.ITEM_PRICE_MAP.containsKey(k) ?
-                            v * InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(k,0) : amountMap.getOrDefault(k,0)
-                    ), 220, y[0], paint);
-            y[0] += 20;
-        });
+            // Calculate amount
+            int amount = InvoiceConstants.ITEM_PRICE_MAP.containsKey(product) ?
+                    quantity * InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(product, 0) :
+                    amountMap.getOrDefault(product, 0);
 
-        pdfDocument.finishPage(page);
+            // Check if we need a new page
+            if (currentY + lineHeight > pageHeight - bottomMargin) {
+                // Finish current page
+                pdfDocument.finishPage(currentPage);
 
+                // Start new page
+                pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.getPages().size() + 1).create();
+                currentPage = pdfDocument.startPage(pageInfo);
+                canvas = currentPage.getCanvas();
+                currentY = topMargin;
+
+                // Add table headers on new page (optional)
+                paint.setTextAlign(Paint.Align.LEFT);
+                paint.setColor(Color.BLACK);
+                paint.setTextSize(12f);
+                canvas.drawText("Product", productColX, currentY, paint);
+                canvas.drawText("Quantity", quantityColX, currentY, paint);
+                canvas.drawText("Amount", amountColX, currentY, paint);
+                currentY += 10;
+                canvas.drawLine(leftMargin, currentY, pageWidth - rightMargin, currentY, paint);
+                currentY += 20;
+            }
+
+            // Draw table row
+            canvas.drawText(product, productColX, currentY, paint);
+            canvas.drawText(String.valueOf(quantity), quantityColX, currentY, paint);
+            canvas.drawText(String.valueOf(amount), amountColX, currentY, paint);
+            currentY += lineHeight;
+        }
+
+        // Finish the last page
+        pdfDocument.finishPage(currentPage);
+
+        // Save PDF to external storage
         File folder = new File(Environment.getExternalStorageDirectory()+"/"+Environment.DIRECTORY_DOCUMENTS + "/Gajanan Coldrink House/Reports");
 
         if(!folder.exists()) {
             folder.mkdirs();
         }
 
-        // Save PDF to external storage
-        File pdfFile = new File(folder, "Monthly_Sales_Report_"+monthName+".pdf");
+        File pdfFile = new File(folder, "Monthly_Sales_Report_"+monthName+System.currentTimeMillis()+".pdf");
         try {
             pdfDocument.writeTo(new FileOutputStream(pdfFile));
         } catch (IOException e) {
@@ -312,7 +389,6 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
         pdfDocument.close();
         return pdfFile;
     }
-
     private void showSnackbarWithOpenAction(File pdfFile, View view) {
         Snackbar snackbar = Snackbar.make(view, "PDF generated successfully!", Snackbar.LENGTH_LONG);
         snackbar.setAction("Open", new View.OnClickListener() {

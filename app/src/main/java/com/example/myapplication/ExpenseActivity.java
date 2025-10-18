@@ -4,6 +4,7 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -15,6 +16,7 @@ import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -79,10 +81,10 @@ import java.util.stream.Collectors;
 public class ExpenseActivity extends AppCompatActivity {
 
     private EditText etExpenseParticulars, etExpenseAmount, etExpenseDateTime;
-    private Button btnSaveExpense,getExpenses;
+    private Button btnSaveExpense, getExpenses;
     private ExpenseDbHelper expenseDbHelper;
     private DatabaseHelper databaseHelper;
-    private TextView textViewExpenseTotal,textViewBalanceTotal,textViewDate;
+    private TextView textViewExpenseTotal, textViewBalanceTotal, textViewDate;
     private RecyclerView expenseRecyclerView;
     private ExpenseRecyclerViewAdapter expenseRecyclerViewAdapter;
     public static List<ExpenseRecyclerView> expenseItems = new ArrayList<>();
@@ -94,6 +96,7 @@ public class ExpenseActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyUserTheme();  // Apply before setContentView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_expense);
 
@@ -106,7 +109,9 @@ public class ExpenseActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-
+        // Get data from Intent
+        Intent intent = getIntent();
+        String expCreatedDateTime = intent.getStringExtra("createdDateTime");
 
         // Initialize views
         etExpenseParticulars = findViewById(R.id.etExpenseParticulars);
@@ -120,7 +125,8 @@ public class ExpenseActivity extends AppCompatActivity {
         expenseRecyclerView = findViewById(R.id.expenseRecyclerView);
 
         expenseRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-
+        etExpenseDateTime.setText(String.valueOf(expCreatedDateTime != null ? expCreatedDateTime : ""));
+        ;
         // Initialize database helper
         expenseDbHelper = new ExpenseDbHelper(this);
         databaseHelper = new DatabaseHelper(this);
@@ -130,7 +136,7 @@ public class ExpenseActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Cursor cursor = expenseDbHelper.getAllExpenses();
 
-                if(cursor !=null && cursor.getCount()>0) {
+                if (cursor != null && cursor.getCount() > 0) {
 
                     AlertDialog.Builder builder = new AlertDialog.Builder(ExpenseActivity.this);
                     builder.setTitle("Expense details");
@@ -159,7 +165,7 @@ public class ExpenseActivity extends AppCompatActivity {
                     populateHeaderRow(tableLayout, tableHeaderRow);
 
 
-                    while(cursor.moveToNext()) {
+                    while (cursor.moveToNext()) {
                         int id = cursor.getInt(0);
                         String expPart = cursor.getString(1);
                         int expAmt = cursor.getInt(2);
@@ -337,7 +343,7 @@ public class ExpenseActivity extends AppCompatActivity {
         });
 
         etExpenseParticulars.setOnLongClickListener(v -> {
-            if(StringUtils.isBlank(etExpenseParticulars.getText())) {
+            if (StringUtils.isBlank(etExpenseParticulars.getText())) {
                 return false;
             }
             View view = getLayoutInflater().inflate(R.layout.other_entity, null, false);
@@ -362,7 +368,7 @@ public class ExpenseActivity extends AppCompatActivity {
                 public void onClick(View v) {
                     String itemName = etItemName.getText().toString();
                     String itemValue = etItemValue.getText().toString();
-                    if(itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()){
+                    if (itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty()) {
                         addItemToSpinner(itemName, itemValue);
                         showCustomToast("Item " + itemName + " added");
 //                        animateBackground(spinnerBucket , false);
@@ -372,8 +378,8 @@ public class ExpenseActivity extends AppCompatActivity {
                 private void addItemToSpinner(String itemName, String itemValue) {
                     items.clear();
                     itemMap.put(itemName, Integer.valueOf(itemValue));
-                    itemMap.forEach((k,v) -> {
-                        items.add(k+" = "+v);
+                    itemMap.forEach((k, v) -> {
+                        items.add(k + " = " + v);
                     });
                     etItemName.setText("");
                     etItemValue.setText("");
@@ -396,7 +402,7 @@ public class ExpenseActivity extends AppCompatActivity {
                         items.remove(selectedItemPosition);
                         itemMap.remove(itemName.split(" = ")[0]);
                         spinnerAdapter.notifyDataSetChanged();
-                        showCustomToast("Item "+ itemName.split(" = ")[0] +" removed");
+                        showCustomToast("Item " + itemName.split(" = ")[0] + " removed");
 
                     }
                 }
@@ -418,10 +424,10 @@ public class ExpenseActivity extends AppCompatActivity {
                     Gson gson = new Gson();
                     String jsonString = gson.toJson(expenseParticularsDto);
 
-                    System.err.println("MAP json >>> "+jsonString);
+                    System.err.println("MAP json >>> " + jsonString);
                     expParticularsJson = jsonString;
                     AtomicInteger totalExpense = new AtomicInteger();
-                    itemMap.forEach((k,v)->{
+                    itemMap.forEach((k, v) -> {
                         totalExpense.addAndGet(v);
                     });
 
@@ -452,19 +458,79 @@ public class ExpenseActivity extends AppCompatActivity {
 
 
         LocalDate localDate = LocalDate.now();
-        textViewDate.setText(localDate.getDayOfMonth()+"-"+String.format("%02d",localDate.getMonthValue())+"-"+localDate.getYear());
+        textViewDate.setText(localDate.getDayOfMonth() + "-" + String.format("%02d", localDate.getMonthValue()) + "-" + localDate.getYear());
 
         Cursor res = expenseDbHelper.getTodaysTotalExpense(String.valueOf(localDate));
 
-        if(res!=null && res.getCount()>0) {
-            while(res.moveToNext()) {
-                textViewExpenseTotal.setText(String.valueOf("\u20B9"+res.getInt(0)));
-                textViewBalanceTotal.setText(String.valueOf("\u20B9"+res.getInt(1)));
+        if (res != null && res.getCount() > 0) {
+            while (res.moveToNext()) {
+                textViewExpenseTotal.setText(String.valueOf("\u20B9" + res.getInt(0)));
+                textViewBalanceTotal.setText(String.valueOf("\u20B9" + res.getInt(1)));
             }
         }
 
 
     }
+
+    private void applyUserTheme() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
+
+        switch (theme) {
+            case "Default":
+                setTheme(R.style.Base_Theme_MyApplication);
+                break;
+            case "Red":
+                setTheme(R.style.AppTheme_Red);
+                break;
+            case "Blue":
+                setTheme(R.style.AppTheme_Blue);
+                break;
+            case "Green":
+                setTheme(R.style.AppTheme_Green);
+                break;
+            case "Purple":
+                setTheme(R.style.AppTheme_Purple);
+                break;
+            case "Orange":
+                setTheme(R.style.AppTheme_Orange);
+                break;
+            case "Teal":
+                setTheme(R.style.AppTheme_Teal);
+                break;
+            case "Pink":
+                setTheme(R.style.AppTheme_Pink);
+                break;
+            case "Cyan":
+                setTheme(R.style.AppTheme_Cyan);
+                break;
+            case "Lime":
+                setTheme(R.style.AppTheme_Lime);
+                break;
+            case "Brown":
+                setTheme(R.style.AppTheme_Brown);
+                break;
+            case "Mint":
+                setTheme(R.style.AppTheme_Mint);
+                break;
+            case "Coral":
+                setTheme(R.style.AppTheme_Coral);
+                break;
+            case "Steel":
+                setTheme(R.style.AppTheme_Steel);
+                break;
+            case "Lavender":
+                setTheme(R.style.AppTheme_Lavender);
+                break;
+            case "Mustard":
+                setTheme(R.style.AppTheme_Mustard);
+                break;
+            default:
+                setTheme(R.style.Base_Theme_MyApplication);
+                break;
+        }
+    }
+
 
     public static Bitmap generateInitialsImage(String firstName, String lastName, int sizeInDp, Context context) {
         String initials = "";
@@ -528,7 +594,7 @@ public class ExpenseActivity extends AppCompatActivity {
 
 //        List<Expense> fltrExp = allExpenses.stream().filter(expense -> expense.getYesterdaysBalance()==0).collect(Collectors.toList());
 
-        if(!allExpenses.isEmpty()) {
+        if (!allExpenses.isEmpty()) {
             List<LocalDate> missing = findMissingDates(allExpenses);
 
             if (missing.isEmpty()) {
@@ -542,7 +608,7 @@ public class ExpenseActivity extends AppCompatActivity {
     }
 
     private void toggleMenuItem(boolean enable) {
-        if(menu != null) {
+        if (menu != null) {
             MenuItem item = menu.findItem(R.id.action_check_missing_expenses);
             if (item != null) {
                 item.setVisible(enable);
@@ -561,7 +627,7 @@ public class ExpenseActivity extends AppCompatActivity {
 
             List<Expense> missingExpenses = expenseDbHelper.getAllExpenseParsedList();
 
-            if(!missingExpenses.isEmpty()) {
+            if (!missingExpenses.isEmpty()) {
                 List<LocalDate> missing = findMissingDates(missingExpenses);
                 Utils.showMissingDatesPopup(this, missing);
             }
@@ -589,7 +655,7 @@ public class ExpenseActivity extends AppCompatActivity {
         Toast toast = new Toast(getApplicationContext());
         toast.setDuration(Toast.LENGTH_SHORT);
         toast.setView(layout);
-        toast.setGravity(Gravity.TOP|Gravity.CENTER,toast.getXOffset(), toast.getYOffset());
+        toast.setGravity(Gravity.TOP | Gravity.CENTER, toast.getXOffset(), toast.getYOffset());
         toast.show();
     }
 
@@ -622,7 +688,7 @@ public class ExpenseActivity extends AppCompatActivity {
                                 calendar.set(Calendar.MINUTE, minute);
 //                                String dateTime = new SimpleDateFormat("dd").format(calendar.getTime()) + "-" + (String.format("%02d",month + 1) ) + "-" + year + " " + new SimpleDateFormat("HH").format(calendar.getTime()) + ":" + new SimpleDateFormat("mm").format(calendar.getTime());
 //                                dateVal = year + "-" + new SimpleDateFormat("MM").format(calendar.getTime()) + "-" + new SimpleDateFormat("dd").format(calendar.getTime());
-                                String dateTimeVal = year + "-" + (String.format("%02d",month + 1) ) + "-" + new SimpleDateFormat("dd").format(calendar.getTime()) + " " + new SimpleDateFormat("HH").format(calendar.getTime()) + ":" + new SimpleDateFormat("mm").format(calendar.getTime());
+                                String dateTimeVal = year + "-" + (String.format("%02d", month + 1)) + "-" + new SimpleDateFormat("dd").format(calendar.getTime()) + " " + new SimpleDateFormat("HH").format(calendar.getTime()) + ":" + new SimpleDateFormat("mm").format(calendar.getTime());
                                 etExpenseDateTime.setText(dateTimeVal);
                             },
                             calendar.get(Calendar.HOUR_OF_DAY),
@@ -643,7 +709,7 @@ public class ExpenseActivity extends AppCompatActivity {
     private void saveExpense() throws IOException {
         String particulars = etExpenseParticulars.getText().toString().trim();
 
-        if(StringUtils.isNotBlank(expParticularsJson)) {
+        if (StringUtils.isNotBlank(expParticularsJson)) {
             particulars = expParticularsJson;
         }
 
@@ -678,13 +744,13 @@ public class ExpenseActivity extends AppCompatActivity {
             return;
         }
         String date;
-        if(StringUtils.isNotEmpty(datetime)) {
-            date = datetime.substring(0,10);
+        if (StringUtils.isNotEmpty(datetime)) {
+            date = datetime.substring(0, 10);
         } else {
             date = "";
         }
         LocalDate yesterDay = LocalDate.now();
-        if(StringUtils.isNotEmpty(date)) {
+        if (StringUtils.isNotEmpty(date)) {
             LocalDate dateParsed = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             yesterDay = dateParsed.minusDays(1);
         }
@@ -697,10 +763,10 @@ public class ExpenseActivity extends AppCompatActivity {
         Expense expense = null;
         Cursor cursor = checkIfExpenseExists(date);
         boolean isInserted = false;
-        if(cursor!=null && cursor.getCount()>0) {
-            int idRow = 0,expAmountRow=0,yBalance=0,balanceRow = 0,yesterdaysBalanceRow = 0,todaysSalesRow=0;
-            String particularsRow = "",expDateRow="",expDateTimeRow="",datetimeRow = "";
-            while(cursor.moveToNext()) {
+        if (cursor != null && cursor.getCount() > 0) {
+            int idRow = 0, expAmountRow = 0, yBalance = 0, balanceRow = 0, yesterdaysBalanceRow = 0, todaysSalesRow = 0;
+            String particularsRow = "", expDateRow = "", expDateTimeRow = "", datetimeRow = "";
+            while (cursor.moveToNext()) {
                 idRow = cursor.getInt(0);
                 particularsRow = cursor.getString(1);
 //                expAmountRow = cursor.getInt(2);
@@ -710,15 +776,13 @@ public class ExpenseActivity extends AppCompatActivity {
 //                todaysSalesRow = cursor.getInt(6);
 //                balanceRow = cursor.getInt(7);
             }
-            isInserted = expenseDbHelper.insertExpense(idRow, particulars, amount, datetime, date,yesterdaysBalance, todaysSales, balance);
+            isInserted = expenseDbHelper.insertExpense(idRow, particulars, amount, datetime, date, yesterdaysBalance, todaysSales, balance);
 
             expense = new Expense(idRow, particulars, (int) amount, datetime, date, (int) yesterdaysBalance, (int) todaysSales, (int) balance);
 
 
-
-
         } else {
-            isInserted = expenseDbHelper.insertExpense(null, particulars, amount, datetime, date,yesterdaysBalance, todaysSales, balance);
+            isInserted = expenseDbHelper.insertExpense(null, particulars, amount, datetime, date, yesterdaysBalance, todaysSales, balance);
 
             expense = new Expense(null, particulars, (int) amount, datetime, date, (int) yesterdaysBalance, (int) todaysSales, (int) balance);
 
@@ -729,8 +793,8 @@ public class ExpenseActivity extends AppCompatActivity {
         dates.forEach(currDate -> {
 
             Cursor res = checkIfExpenseExists(currDate);
-            if(res!=null && res.getCount()>0) {
-                while(res.moveToNext()) {
+            if (res != null && res.getCount() > 0) {
+                while (res.moveToNext()) {
                     int expId = res.getInt(0);
                     String expPart = res.getString(1);
                     int expAmount = res.getInt(2);
@@ -739,7 +803,7 @@ public class ExpenseActivity extends AppCompatActivity {
 
 
                     LocalDate yesterDays = LocalDate.now();
-                    if(StringUtils.isNotEmpty(currDate)) {
+                    if (StringUtils.isNotEmpty(currDate)) {
                         LocalDate dateParsed = LocalDate.parse(currDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                         yesterDays = dateParsed.minusDays(1);
                     }
@@ -752,11 +816,11 @@ public class ExpenseActivity extends AppCompatActivity {
 
                     // Check if the update was successful
                     if (rowsAffected > 0) {
-                        Toast.makeText(this, "Record updated successfully "+expId, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Record updated successfully " + expId, Toast.LENGTH_SHORT).show();
                         Expense exp = new Expense(expId, expPart, expAmount, expDateTime, expDate, (int) yesterdaysBalanceUpdated, (int) todaysSalesUpdated, (int) balanceUpdated);
                         saveExpenseOnCloud(this, expDate, exp);
                     } else {
-                        Toast.makeText(this, expId+" Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, expId + " Update failed. No matching record found.", Toast.LENGTH_SHORT).show();
                     }
 
                 }
@@ -774,10 +838,10 @@ public class ExpenseActivity extends AppCompatActivity {
 
             Cursor res = expenseDbHelper.getTodaysTotalExpense(String.valueOf(LocalDate.now()));
 
-            if(res!=null && res.getCount()>0) {
-                while(res.moveToNext()) {
-                    textViewExpenseTotal.setText(String.valueOf("\u20B9"+res.getInt(0)));
-                    textViewBalanceTotal.setText(String.valueOf("\u20B9"+res.getInt(1)));
+            if (res != null && res.getCount() > 0) {
+                while (res.moveToNext()) {
+                    textViewExpenseTotal.setText(String.valueOf("\u20B9" + res.getInt(0)));
+                    textViewBalanceTotal.setText(String.valueOf("\u20B9" + res.getInt(1)));
                 }
             }
 
@@ -793,7 +857,7 @@ public class ExpenseActivity extends AppCompatActivity {
 
         List<LocalDate> missing = findMissingDates(missingExpenses);
 
-        if(missing.isEmpty()){
+        if (missing.isEmpty()) {
             toggleMenuItem(false);
         } else {
             toggleMenuItem(true);
@@ -814,8 +878,8 @@ public class ExpenseActivity extends AppCompatActivity {
 
             int id = expense.getId();
             String expensePart = expense.getExpensePart();
-            if(JsonUtils.isValidJson(expensePart)) {
-                expensePart = "\""+expensePart+"\"";
+            if (JsonUtils.isValidJson(expensePart)) {
+                expensePart = "\"" + expensePart + "\"";
             }
 
 
@@ -828,7 +892,7 @@ public class ExpenseActivity extends AppCompatActivity {
 
 
             // Construct CSV row
-            String csvRow = id + "," +  expensePart + "," + expenseAmount + "," + expenseExpenseDateTime+ "," + expenseDate+"," + expenseYesterdaysBalance+"," + expenseSales+"," + expenseBalance+ "\n";
+            String csvRow = id + "," + expensePart + "," + expenseAmount + "," + expenseExpenseDateTime + "," + expenseDate + "," + expenseYesterdaysBalance + "," + expenseSales + "," + expenseBalance + "\n";
 
             // Write CSV row to file
             try {
@@ -853,14 +917,14 @@ public class ExpenseActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
         String deviceModel = sharedPreferences.getString("model", Build.MODEL);
 
-        DatabaseReference expRef = database.getReference(deviceModel+"/"+"expenses");
+        DatabaseReference expRef = database.getReference(deviceModel + "/" + "expenses");
 
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         LocalDate localDate = LocalDate.parse(date, dateTimeFormatter);
 
         boolean todaysDate = true;
-        if(localDate.equals(LocalDate.now())) {
+        if (localDate.equals(LocalDate.now())) {
             todaysDate = true;
         } else {
             todaysDate = false;
@@ -876,7 +940,7 @@ public class ExpenseActivity extends AppCompatActivity {
 //        String sendLocalDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss"));
 
         // Store user data
-        expRef.child(year+"").child(monthShort+"-"+year).child(todaysDate ==true ? sendLocalDate : localDate+"")
+        expRef.child(year + "").child(monthShort + "-" + year).child(todaysDate == true ? sendLocalDate : localDate + "")
                 .setValue(expense)
                 .addOnSuccessListener(aVoid -> {
                     // Data stored successfully
@@ -911,13 +975,13 @@ public class ExpenseActivity extends AppCompatActivity {
                 LocalDate finalDate = date;
                 boolean isExists = dateStrings.stream().anyMatch(ex -> ex.getExpenseDate().contains(String.valueOf(finalDate)));
                 List<Expense> tempExp = new ArrayList<>();
-                if(isExists) {
+                if (isExists) {
                     tempExp = dateStrings.stream().filter(expense -> expense.getExpenseDate().equalsIgnoreCase(String.valueOf(finalDate)))
-                            .filter(exp -> exp.getYesterdaysBalance()>0).collect(Collectors.toList());
-                    System.err.println(" missing dates >> "+tempExp.size());
+                            .filter(exp -> exp.getYesterdaysBalance() > 0).collect(Collectors.toList());
+                    System.err.println(" missing dates >> " + tempExp.size());
                 } else {
                     missingDates.add(date);
-                    System.err.println(" missing dates. >> "+tempExp.size());
+                    System.err.println(" missing dates. >> " + tempExp.size());
                 }
             }
         }

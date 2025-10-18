@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
@@ -12,6 +13,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -22,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.MainAdapter;
+import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.dtos.Day;
 import com.example.myapplication.dtos.DtoJsonEntity;
 import com.example.myapplication.dtos.Month;
@@ -31,12 +34,23 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CloudSummary extends AppCompatActivity {
@@ -95,23 +109,57 @@ public class CloudSummary extends AppCompatActivity {
         String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
 
         switch (theme) {
-            case "Default": setTheme(R.style.Base_Theme_MyApplication); break;
-            case "Red": setTheme(R.style.AppTheme_Red); break;
-            case "Blue": setTheme(R.style.AppTheme_Blue); break;
-            case "Green": setTheme(R.style.AppTheme_Green); break;
-            case "Purple": setTheme(R.style.AppTheme_Purple); break;
-            case "Orange": setTheme(R.style.AppTheme_Orange); break;
-            case "Teal": setTheme(R.style.AppTheme_Teal); break;
-            case "Pink": setTheme(R.style.AppTheme_Pink); break;
-            case "Cyan": setTheme(R.style.AppTheme_Cyan); break;
-            case "Lime": setTheme(R.style.AppTheme_Lime); break;
-            case "Brown": setTheme(R.style.AppTheme_Brown); break;
-            case "Mint": setTheme(R.style.AppTheme_Mint); break;
-            case "Coral": setTheme(R.style.AppTheme_Coral); break;
-            case "Steel": setTheme(R.style.AppTheme_Steel); break;
-            case "Lavender": setTheme(R.style.AppTheme_Lavender); break;
-            case "Mustard": setTheme(R.style.AppTheme_Mustard); break;
-            default: setTheme(R.style.Base_Theme_MyApplication); break;
+            case "Default":
+                setTheme(R.style.Base_Theme_MyApplication);
+                break;
+            case "Red":
+                setTheme(R.style.AppTheme_Red);
+                break;
+            case "Blue":
+                setTheme(R.style.AppTheme_Blue);
+                break;
+            case "Green":
+                setTheme(R.style.AppTheme_Green);
+                break;
+            case "Purple":
+                setTheme(R.style.AppTheme_Purple);
+                break;
+            case "Orange":
+                setTheme(R.style.AppTheme_Orange);
+                break;
+            case "Teal":
+                setTheme(R.style.AppTheme_Teal);
+                break;
+            case "Pink":
+                setTheme(R.style.AppTheme_Pink);
+                break;
+            case "Cyan":
+                setTheme(R.style.AppTheme_Cyan);
+                break;
+            case "Lime":
+                setTheme(R.style.AppTheme_Lime);
+                break;
+            case "Brown":
+                setTheme(R.style.AppTheme_Brown);
+                break;
+            case "Mint":
+                setTheme(R.style.AppTheme_Mint);
+                break;
+            case "Coral":
+                setTheme(R.style.AppTheme_Coral);
+                break;
+            case "Steel":
+                setTheme(R.style.AppTheme_Steel);
+                break;
+            case "Lavender":
+                setTheme(R.style.AppTheme_Lavender);
+                break;
+            case "Mustard":
+                setTheme(R.style.AppTheme_Mustard);
+                break;
+            default:
+                setTheme(R.style.Base_Theme_MyApplication);
+                break;
         }
     }
 
@@ -122,7 +170,7 @@ public class CloudSummary extends AppCompatActivity {
 
         // Generate a list of years (e.g., from 1900 to current year)
         List<String> years = new ArrayList<>();
-        for (int year = 2022; year <= currentYear+3; year++) {
+        for (int year = 2022; year <= currentYear + 3; year++) {
             years.add(String.valueOf(year));
         }
 
@@ -150,7 +198,7 @@ public class CloudSummary extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
         String deviceModel = sharedPreferences.getString("model", Build.MODEL);
 
-        databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel+"/"+"invoices");
+        databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/" + "invoices");
         databaseReference.addValueEventListener(new ValueEventListener() {
             private String key;
 
@@ -158,27 +206,56 @@ public class CloudSummary extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 progressDialog.dismiss();
 
+                Object data = dataSnapshot.getValue();
+                Gson gson = null;
+
+                boolean enableCloudExportVal = sharedPreferences.getBoolean("enableCloudExport", false);
+
+                if (enableCloudExportVal) {
+                    boolean isPrettyPrint = sharedPreferences.getBoolean("enablePrettyPrintExport", false);
+                    if (isPrettyPrint)
+                        gson = new GsonBuilder().setPrettyPrinting().create();
+                    else
+                        gson = new GsonBuilder().create();
+                    String json = gson.toJson(data);
+
+                    JSONObject jsonObject = new JSONObject();
+                    try {
+                        jsonObject.put(dataSnapshot.getKey(), new JSONObject(json));
+                        String finalOutput = null;
+                        if (isPrettyPrint)
+                            finalOutput = jsonObject.toString(4);
+                        else
+                            finalOutput = jsonObject.toString();
+                        exportJsonToFile(finalOutput, InvoiceConstants.CLOUD_EXPORT_JSON_FILE_NAME);
+
+
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+
                 Long expAmt = 0L;
                 Long expAmtMonth = 0L;
-                    yearList = new CopyOnWriteArrayList<>();
+                yearList = new CopyOnWriteArrayList<>();
                 monthList = new CopyOnWriteArrayList<>();
                 for (DataSnapshot yearSnapshot : dataSnapshot.getChildren()) {
 
                     Year year = new Year();
 
-                    for(DataSnapshot monthSnapshot : yearSnapshot.getChildren()) {
-                        expAmtMonth =0L;
+                    for (DataSnapshot monthSnapshot : yearSnapshot.getChildren()) {
+                        expAmtMonth = 0L;
                         List<Day> dayList = new ArrayList<>();
                         Month month = new Month();
 
 
-
-                        for(DataSnapshot daySnapshot : monthSnapshot.getChildren()) {
+                        for (DataSnapshot daySnapshot : monthSnapshot.getChildren()) {
                             Day day = new Day();
                             key = daySnapshot.getKey();
-                            expAmt=0L;
+                            expAmt = 0L;
                             List<DtoJsonEntity> tList = new ArrayList<>();
-                            for(DataSnapshot subDay : daySnapshot.getChildren()) {
+                            for (DataSnapshot subDay : daySnapshot.getChildren()) {
                                 String userId = subDay.getKey();
                                 DtoJsonEntity dtoJsonEntity = subDay.getValue(DtoJsonEntity.class);
                                 expAmt += dtoJsonEntity.getTotal();
@@ -209,19 +286,37 @@ public class CloudSummary extends AppCompatActivity {
 
                 String spinnerMonth = yearSpinner.getSelectedItem().toString();
 
-                for (Month y: monthList) {
-                    if(!y.getMonthName().contains(spinnerMonth)) {
+                for (Month y : monthList) {
+                    if (!y.getMonthName().contains(spinnerMonth)) {
                         monthList.remove(y);
                     }
                 }
                 int totalYear = monthList.stream().map(month -> month.getMonthTotal()).mapToInt(n -> n.intValue()).sum();
-                yearTotal.setText("Total  \u20B9"+totalYear);
-
+                yearTotal.setText("Total  \u20B9" + totalYear);
 
 
                 // Set the adapter
-                mainAdapter = new MainAdapter(CloudSummary.this,  monthList);
+                mainAdapter = new MainAdapter(CloudSummary.this, monthList);
                 recyclerView.setAdapter(mainAdapter);
+            }
+
+            private void exportJsonToFile(String finalOutput, String fileName) {
+                try {
+                    File exportDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS + "/InvMgrCloudJsonExport");
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("ddMMMyy_HHmmss");
+                    fileName = fileName + "_" + simpleDateFormat.format(new Date())+".json";
+                    File file = new File(exportDir, fileName);
+
+                    if (!exportDir.exists()) {
+                        exportDir.mkdirs();
+                    }
+
+                    FileWriter writer = new FileWriter(file);
+                    writer.write(finalOutput);
+                    writer.close();
+                } catch (IOException e) {
+                    Toast.makeText(CloudSummary.this, "Cloud Export Failed!!", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override

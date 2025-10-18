@@ -148,9 +148,9 @@ public class NewUIActivity extends AppCompatActivity {
         // Filter out products with quantity 0 before saving to keep the JSON clean
         List<Product> productsToSave = new ArrayList<>();
         for (Product product : productList) {
-            if (product.getQuantity() > 0) {
+//            if (product.getQuantity() > 0) {
                 productsToSave.add(product);
-            }
+//            }
         }
         String json = gson.toJson(productsToSave);
         sharedPreferences.edit().putString(SELECTED_PRODUCTS_KEY, json).apply();

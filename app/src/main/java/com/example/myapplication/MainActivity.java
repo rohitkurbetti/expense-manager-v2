@@ -27,6 +27,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.text.format.DateFormat;
 import android.util.Base64;
 import android.util.Log;
 import android.util.TypedValue;
@@ -58,24 +59,27 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.adapters.CsvAdapter;
 import com.example.myapplication.adapters.CustomAdapter;
+import com.example.myapplication.adapters.DashboardAdapter;
 import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.NestedListAdapter;
 import com.example.myapplication.adapters.NestedOtherListAdapter;
 import com.example.myapplication.adapters.OtherItemsAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.database.DatabaseHelper;
-import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.database.ExpenseDbHelper;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
+import com.example.myapplication.dtos.ItemModel;
 import com.example.myapplication.utils.PDFGeneratorUtil;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -112,7 +116,6 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.property.TextAlignment;
 import com.itextpdf.layout.property.UnitValue;
 
-
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
@@ -142,6 +145,8 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -156,7 +161,7 @@ import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SHARED_PREFS_FILE = "my_shared_prefs";
+    public static final String SHARED_PREFS_FILE = "my_shared_prefs";
     private static final String FIRST_LAUNCH_KEY = "isFirstLaunch";
     private final String csvFileName = "item_list.csv";
     private boolean isIconOne = true;
@@ -194,6 +199,15 @@ public class MainActivity extends AppCompatActivity {
             "Mint", "Coral", "Steel", "Lavender", "Mustard"
     };
 
+    RecyclerView dashboardRecyclerView;
+    DashboardAdapter dashboardAdapter;
+    List<ItemModel> dashboardItemList;
+    View toggleHandle;
+    boolean isExpanded = true;
+    private TextView dashboardText;
+    private CardView cardDashboard;
+    private ImageView exclamationImageView;
+
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -201,10 +215,118 @@ public class MainActivity extends AppCompatActivity {
         applyUserTheme();  // Apply before setContentView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, MODE_PRIVATE);
+
+        dbHelper = new DatabaseHelper(getApplicationContext());
 
         // Show the hacker console dialog when the app launches
 //        showHackerConsoleDialog();
 
+        dashboardRecyclerView = findViewById(R.id.recyclerViewDashboard);
+        cardDashboard = findViewById(R.id.cardDashboard);
+        dashboardText = findViewById(R.id.dashboardText);
+        dashboardRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        toggleHandle = findViewById(R.id.toggleHandle);
+        collapseView(cardDashboard);
+
+        toggleHandle.setOnClickListener(v -> {
+            if (isExpanded) {
+                collapseView(cardDashboard);
+            } else {
+                expandView(cardDashboard);
+            }
+            isExpanded = !isExpanded;
+        });
+
+        // Example data (replace with DB/Firebase fetch)
+        dashboardItemList = new ArrayList<>();
+
+
+        dashboardText.setText(String.valueOf("Most sold items in last 30 days"));
+        dashboardText.setTypeface(getResources().getFont(R.font.poppins_semibold));
+
+        Map<String, Integer> map = new HashMap<>();
+
+        // Formatter for yyyy-MM-dd
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+
+        // Today's date
+        LocalDate toDate = LocalDate.now();
+        int selectedPeriodValue = 30;
+        String selectedPeriod = sharedPreferences.getString("selectedPeriod", "Last 30 days"); // default
+        if (selectedPeriod.equalsIgnoreCase("Last 30 days")) {
+            selectedPeriodValue = 30;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 60 days")) {
+            selectedPeriodValue = 60;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 90 days")) {
+            selectedPeriodValue = 90;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 6 months")) {
+            selectedPeriodValue = 180;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 1 year")) {
+            selectedPeriodValue = 365;
+        }
+        dashboardText.setText(String.valueOf("Most sold items in " + selectedPeriod));
+
+        // 30 days before today
+        LocalDate fromDate = toDate.minusDays(selectedPeriodValue);
+
+        // Format both dates
+        String startDateFormatted = fromDate.format(formatter);
+        String endDateFormatted = toDate.format(formatter);
+
+        DateTimeFormatter formatterForUI = DateTimeFormatter.ofPattern("dd-MMM-yy");
+
+        String fromDateForUI = fromDate.format(formatterForUI);
+        String toDateForUI = toDate.format(formatterForUI);
+
+        Log.i(" date period >> ", startDateFormatted + " <> " + endDateFormatted);
+
+        Cursor cursor = dbHelper.getPeriodRecords(startDateFormatted, endDateFormatted);
+
+        if (cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                double itemVal = 0.0d;
+                String jsonItemList = cursor.getString(1);
+                total += cursor.getInt(2);
+                List<CustomItem> itemList = getParserJsonList(jsonItemList);
+                for (CustomItem customItem : itemList) {
+                    if (map.containsKey(customItem.getName())) {
+                        itemVal = map.get(customItem.getName()) + (int) customItem.getSliderValue();
+                    } else {
+                        itemVal = (int) customItem.getSliderValue();
+                    }
+                    map.put(customItem.getName(), (int) itemVal);
+                    itemVal = 0.0d;
+                }
+            }
+            System.err.println("map: " + map);
+        }
+
+        if (!map.isEmpty()) {
+            dashboardItemList.clear();
+        } else {
+            collapseView(cardDashboard);
+        }
+
+        map.forEach((k, v) -> {
+            dashboardItemList.add(new ItemModel(k, v));
+        });
+
+
+        // Sort by descending quantity
+        Collections.sort(dashboardItemList, new Comparator<ItemModel>() {
+            @Override
+            public int compare(ItemModel o1, ItemModel o2) {
+                return o2.getQuantity() - o1.getQuantity();
+            }
+        });
+
+        dashboardAdapter = new DashboardAdapter(this, dashboardItemList);
+        dashboardRecyclerView.setAdapter(dashboardAdapter);
+
+        exclamationImageView = findViewById(R.id.exclamationImageView);
+        exclamationImageView.setOnClickListener(v -> showSummaryDialog(selectedPeriod, fromDateForUI, toDateForUI));
 
         otherItemsMap = new HashMap<String, Integer[]>();
 //        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // For Dark Mode
@@ -217,7 +339,6 @@ public class MainActivity extends AppCompatActivity {
             checkStoragePermission();
         }
 
-        sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, MODE_PRIVATE);
 
         setDeviceModelInSharedPrefs();
 
@@ -231,7 +352,6 @@ public class MainActivity extends AppCompatActivity {
         FirebaseApp.initializeApp(this);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        dbHelper = new DatabaseHelper(getApplicationContext());
         expenseDbHelper = new ExpenseDbHelper(getApplicationContext());
         pd = new ProgressDialog(this);
         recyclerView = findViewById(R.id.recyclerView);
@@ -274,28 +394,198 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void showSummaryDialog(String selectedPeriod, String fromDateForUI, String toDateForUI) {
+        // Inflate custom layout
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View dialogView = inflater.inflate(R.layout.dialog_summary, null);
+
+        TextView tvSummary = dialogView.findViewById(R.id.tvSummary);
+        Button btnClose = dialogView.findViewById(R.id.btnClose);
+
+        // Set summary text dynamically if needed
+        tvSummary.setText("📊 Dashboard Summary:\n\nData from "
+                + selectedPeriod.toLowerCase() + "\n" + fromDateForUI + "  to  " + toDateForUI);
+
+        // Build dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+
+        AlertDialog dialog = builder.create();
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void updateDashboardAfterInsertion() {
+        Map<String, Integer> map = new HashMap<>();
+
+        // Formatter for yyyy-MM-dd
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+
+        // Today's date
+        LocalDate toDate = LocalDate.now();
+
+        int selectedPeriodValue = 30;
+        String selectedPeriod = sharedPreferences.getString("selectedPeriod", "Last 30 days"); // default
+        if (selectedPeriod.equalsIgnoreCase("Last 30 days")) {
+            selectedPeriodValue = 30;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 60 days")) {
+            selectedPeriodValue = 60;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 90 days")) {
+            selectedPeriodValue = 90;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 6 months")) {
+            selectedPeriodValue = 180;
+        } else if (selectedPeriod.equalsIgnoreCase("Last 1 year")) {
+            selectedPeriodValue = 365;
+        }
+        dashboardText.setText(String.valueOf("Most sold items in " + selectedPeriod.toLowerCase()));
+
+
+        // 30 days before today
+        LocalDate fromDate = toDate.minusDays(selectedPeriodValue);
+
+        // Format both dates
+        String startDateFormatted = fromDate.format(formatter);
+        String endDateFormatted = toDate.format(formatter);
+
+        DateTimeFormatter formatterForUI = DateTimeFormatter.ofPattern("dd-MMM-yy");
+
+        String fromDateForUI = fromDate.format(formatterForUI);
+        String toDateForUI = toDate.format(formatterForUI);
+        Log.i(" date period >> ", startDateFormatted + " <> " + endDateFormatted);
+        Cursor cursor = dbHelper.getPeriodRecords(startDateFormatted, endDateFormatted);
+
+        if (cursor.getCount() > 0) {
+            dashboardItemList.clear();
+            while (cursor.moveToNext()) {
+                double itemVal = 0.0d;
+                String jsonItemList = cursor.getString(1);
+                total += cursor.getInt(2);
+                List<CustomItem> itemList = getParserJsonList(jsonItemList);
+                for (CustomItem customItem : itemList) {
+                    if (map.containsKey(customItem.getName())) {
+                        itemVal = map.get(customItem.getName()) + (int) customItem.getSliderValue();
+                    } else {
+                        itemVal = (int) customItem.getSliderValue();
+                    }
+                    map.put(customItem.getName(), (int) itemVal);
+                    itemVal = 0.0d;
+                }
+            }
+            System.err.println("map: " + map);
+        }
+
+        if (map.isEmpty()) {
+            dashboardItemList.clear();
+            dashboardAdapter.notifyDataSetChanged();
+        }
+
+        map.forEach((k, v) -> {
+            dashboardItemList.add(new ItemModel(k, v));
+        });
+
+        // Sort by descending quantity
+        Collections.sort(dashboardItemList, new Comparator<ItemModel>() {
+            @Override
+            public int compare(ItemModel o1, ItemModel o2) {
+                return o2.getQuantity() - o1.getQuantity();
+            }
+        });
+
+        dashboardAdapter.updateData(dashboardItemList);
+//        if (isExpanded) {
+//            collapseView(cardDashboard);
+//        } else {
+//        expandView(cardDashboard);
+//        }
+//        isExpanded = !isExpanded;
+    }
+
+    private void collapseView(View view) {
+        int initialHeight = view.getHeight();
+        ValueAnimator animator = ValueAnimator.ofInt(initialHeight, 0);
+        animator.addUpdateListener(animation -> {
+            int value = (int) animation.getAnimatedValue();
+            view.getLayoutParams().height = value;
+            view.requestLayout();
+        });
+        animator.setDuration(300);
+        animator.start();
+    }
+
+    private void expandView(View view) {
+        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        int targetHeight = view.getMeasuredHeight();
+
+        ValueAnimator animator = ValueAnimator.ofInt(view.getHeight(), targetHeight);
+        animator.addUpdateListener(animation -> {
+            int value = (int) animation.getAnimatedValue();
+            view.getLayoutParams().height = value;
+            view.requestLayout();
+        });
+        animator.setDuration(300);
+        animator.start();
+    }
+
     private void applyUserTheme() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
 
         switch (theme) {
-            case "Default": setTheme(R.style.Base_Theme_MyApplication); break;
-            case "Red": setTheme(R.style.AppTheme_Red); break;
-            case "Blue": setTheme(R.style.AppTheme_Blue); break;
-            case "Green": setTheme(R.style.AppTheme_Green); break;
-            case "Purple": setTheme(R.style.AppTheme_Purple); break;
-            case "Orange": setTheme(R.style.AppTheme_Orange); break;
-            case "Teal": setTheme(R.style.AppTheme_Teal); break;
-            case "Pink": setTheme(R.style.AppTheme_Pink); break;
-            case "Cyan": setTheme(R.style.AppTheme_Cyan); break;
-            case "Lime": setTheme(R.style.AppTheme_Lime); break;
-            case "Brown": setTheme(R.style.AppTheme_Brown); break;
-            case "Mint": setTheme(R.style.AppTheme_Mint); break;
-            case "Coral": setTheme(R.style.AppTheme_Coral); break;
-            case "Steel": setTheme(R.style.AppTheme_Steel); break;
-            case "Lavender": setTheme(R.style.AppTheme_Lavender); break;
-            case "Mustard": setTheme(R.style.AppTheme_Mustard); break;
-            default: setTheme(R.style.Base_Theme_MyApplication); break;
+            case "Default":
+                setTheme(R.style.Base_Theme_MyApplication);
+                break;
+            case "Red":
+                setTheme(R.style.AppTheme_Red);
+                break;
+            case "Blue":
+                setTheme(R.style.AppTheme_Blue);
+                break;
+            case "Green":
+                setTheme(R.style.AppTheme_Green);
+                break;
+            case "Purple":
+                setTheme(R.style.AppTheme_Purple);
+                break;
+            case "Orange":
+                setTheme(R.style.AppTheme_Orange);
+                break;
+            case "Teal":
+                setTheme(R.style.AppTheme_Teal);
+                break;
+            case "Pink":
+                setTheme(R.style.AppTheme_Pink);
+                break;
+            case "Cyan":
+                setTheme(R.style.AppTheme_Cyan);
+                break;
+            case "Lime":
+                setTheme(R.style.AppTheme_Lime);
+                break;
+            case "Brown":
+                setTheme(R.style.AppTheme_Brown);
+                break;
+            case "Mint":
+                setTheme(R.style.AppTheme_Mint);
+                break;
+            case "Coral":
+                setTheme(R.style.AppTheme_Coral);
+                break;
+            case "Steel":
+                setTheme(R.style.AppTheme_Steel);
+                break;
+            case "Lavender":
+                setTheme(R.style.AppTheme_Lavender);
+                break;
+            case "Mustard":
+                setTheme(R.style.AppTheme_Mustard);
+                break;
+            default:
+                setTheme(R.style.Base_Theme_MyApplication);
+                break;
         }
     }
 
@@ -319,13 +609,28 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("model", Build.MODEL.contains("samsung") ? "samsung" :
                 Build.MODEL.contains("moto g84 5G") ? "moto" :
-                Build.MODEL.contains("Redmi Note 9 Pro") ? "redmi" : Build.MODEL);
+                        Build.MODEL.contains("Redmi Note 9 Pro") ? "redmi" : Build.MODEL);
         editor.apply();
     }
 
 
     private boolean isFirstLaunch() {
         return sharedPreferences.getBoolean(FIRST_LAUNCH_KEY, true);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    protected void onResume() {
+        super.onResume();
+//        Toast.makeText(this, "resume() called", Toast.LENGTH_SHORT).show();
+        // Refresh your dashboard data here
+
+        updateDashboardAfterInsertion();
+        dashboardAdapter.notifyDataSetChanged();
+        if (dashboardItemList.isEmpty()) {
+            collapseView(cardDashboard);
+        }
+
     }
 
     private void showSetItemPricesDialog() {
@@ -745,7 +1050,7 @@ public class MainActivity extends AppCompatActivity {
             nestedListView.setAdapter(nestedListAdapter);
             nestedListAdapter.notifyDataSetChanged();
 
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MMMM-yyyy");
 
             LocalDate localDate = LocalDate.now();
 
@@ -767,7 +1072,7 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.this,
                             (DatePicker view1, int selectedYear, int selectedMonth, int selectedDay) -> {
                                 // Handle selected date (month is 0-indexed, so add 1)
-                                String monthName = Month.of(selectedMonth + 1).getDisplayName(TextStyle.SHORT, java.util.Locale.ENGLISH);
+                                String monthName = Month.of(selectedMonth + 1).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
                                 String selectedDate = selectedDay + "-" + monthName + "-" + selectedYear;
                                 String strFmtDay = String.format("%02d", selectedDay);
                                 selectedDate = strFmtDay + "-" + monthName + "-" + selectedYear;
@@ -826,9 +1131,6 @@ public class MainActivity extends AppCompatActivity {
                 public void onClick(DialogInterface dialogInterface, int i) {
 
 
-
-
-
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -848,7 +1150,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setTitle("Confirm date?")
                                 .setIcon(R.drawable.cloud_computing_enabled_data)
                                 .setCancelable(false)
-                                .setMessage("Save invoice for "+selectDateLink.getText())
+                                .setMessage("Save invoice for " + selectDateLink.getText())
                                 .setPositiveButton("Save", (asd, which) -> {
                                     //map to list;
                                     otherItemsList = new ArrayList<>();
@@ -889,7 +1191,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Map<String, Integer[]> showOtherEntityAlert(TextView otherTextView, Boolean otherItemsOnly, CheckBox checkBox) {
-        AtomicInteger qty= new AtomicInteger(0);
+        AtomicInteger qty = new AtomicInteger(0);
         View view = getLayoutInflater().inflate(R.layout.other_entity, null, false);
 
         Button btnAddToBucket = view.findViewById(R.id.btnAddToBucket);
@@ -911,7 +1213,6 @@ public class MainActivity extends AppCompatActivity {
         otherItemsListView.setAdapter(otherItemsAdapter);
 
 
-
         otherQtyUpBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -922,7 +1223,7 @@ public class MainActivity extends AppCompatActivity {
         otherQtyDownBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(qty.get()>0) {
+                if (qty.get() > 0) {
                     etOtherItemQty.setText(String.valueOf(qty.decrementAndGet()));
                 } else {
                     etOtherItemQty.setText(String.valueOf(qty.getAndSet(1)));
@@ -932,9 +1233,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-
         List<String> items = new ArrayList<>();
-
 
 
         spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
@@ -973,7 +1272,7 @@ public class MainActivity extends AppCompatActivity {
                 String itemValue = etItemValue.getText().toString();
                 int qty = Integer.parseInt(etOtherItemQty.getText().toString());
 
-                if (itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty() && qty!=0) {
+                if (itemName != null && !itemValue.isEmpty() && itemValue != null && !itemValue.isEmpty() && qty != 0) {
 //                    addItemToSpinner(itemName, itemValue);
                     addItemToSet(itemName, itemValue, qty);
                     showCustomToast("Item " + itemName + " added");
@@ -986,15 +1285,15 @@ public class MainActivity extends AppCompatActivity {
             }
 
             private void addItemToSet(String itemName, String itemRate, Integer qty) {
-                CustomItem customItem = new CustomItem(itemName, false, (float) qty , Integer.parseInt(itemRate));
-                if(!customItemSet.add(customItem)) {
+                CustomItem customItem = new CustomItem(itemName, false, (float) qty, Integer.parseInt(itemRate));
+                if (!customItemSet.add(customItem)) {
                     customItemSet.remove(customItem);
-                    customItemSet.add(new CustomItem(itemName, false, (float) qty , Integer.parseInt(itemRate)));
+                    customItemSet.add(new CustomItem(itemName, false, (float) qty, Integer.parseInt(itemRate)));
                 }
 
                 int val = Integer.parseInt(itemRate);
 
-                itemMap.put(itemName, new Integer[]{val, qty} );
+                itemMap.put(itemName, new Integer[]{val, qty});
                 etItemName.setText("");
                 etItemValue.setText("");
                 etOtherItemQty.setText("0");
@@ -1006,9 +1305,9 @@ public class MainActivity extends AppCompatActivity {
                 items.clear();
 //                itemMap.put(itemName, Integer.valueOf(itemValue));
 
-                if(!itemMap.containsKey(itemName)) {
+                if (!itemMap.containsKey(itemName)) {
                     int rate = Integer.parseInt(itemValue);
-                    customItemSet.add(new CustomItem(itemName,false, (float) qty.get(), rate));
+                    customItemSet.add(new CustomItem(itemName, false, (float) qty.get(), rate));
                 }
 
                 itemMap.forEach((k, v) -> {
@@ -1221,7 +1520,7 @@ public class MainActivity extends AppCompatActivity {
         itemList = itemList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
         otherItemsList = otherItemsList.stream().filter(i -> i.getSliderValue() > 0.0f).collect(Collectors.toList());
 
-        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("dd-MMM-yyyy").toFormatter(Locale.ENGLISH);
+        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("dd-MMMM-yyyy").toFormatter();
         if (selectDate == null) {
             selectDate = String.valueOf(LocalDate.now());
         }
@@ -1248,6 +1547,7 @@ public class MainActivity extends AppCompatActivity {
 
             long newRowId = dbHelper.saveInvoiceTransaction("\"" + dtoJsonStr + "\"", grandTotal, MainActivity.this, dtoJson, null);
             if (newRowId != -1) {
+                updateDashboardAfterInsertion();
                 writeTextFile(dtoJsonStr, newRowId);
                 File pdfFile = PDFGeneratorUtil.generateInvoice(dtoJson, newRowId, getApplicationContext());
                 View rootView = findViewById(android.R.id.content);
@@ -1624,7 +1924,7 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.invalidateExpenses) {
 
             String date = expenseDbHelper.findMinExpDate();
-            if(date == null || date == "") {
+            if (date == null || date == "") {
                 Toast.makeText(this, "Date is invalid", Toast.LENGTH_SHORT).show();
                 return false;
             }
@@ -1684,6 +1984,11 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+            return true;
+        }
 
 
 //        if (id == R.id.action_load_from_file) {
@@ -1778,7 +2083,7 @@ public class MainActivity extends AppCompatActivity {
 
                 boolean expExists = expenseDbHelper.checkIfExpenseExistsFlag(expCreatedDate);
 
-                if(!expExists) {
+                if (!expExists) {
 
                     boolean isInserted = expenseDbHelper.insertExpense(null, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
 
@@ -1879,7 +2184,7 @@ public class MainActivity extends AppCompatActivity {
 
                         boolean exists = dbHelper.entryExists(invoiceId, total);
 
-                        if(!exists) {
+                        if (!exists) {
                             long newRowId = dbHelper.saveInvoiceTransaction(itemListJson, total, MainActivity.this, dtoJson, invoiceId);
                             if (newRowId != -1) {
                                 ++counter;
@@ -1905,11 +2210,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }).start();
-
-
-
-
-
 
 
     }
@@ -2220,7 +2520,7 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
                                     date.set(year, month, dayOfMonth);
-                                    tvStartDate.setText(android.text.format.DateFormat.format("dd-MM-yyyy", date));
+                                    tvStartDate.setText(DateFormat.format("dd-MM-yyyy", date));
                                 }
                             }, currentDate.get(Calendar.YEAR), currentDate.get(Calendar.MONTH), currentDate.get(Calendar.DATE)).show();
                         }
@@ -2240,7 +2540,7 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
                                     date.set(year, month, dayOfMonth);
-                                    tvEndDate.setText(android.text.format.DateFormat.format("dd-MM-yyyy", date));
+                                    tvEndDate.setText(DateFormat.format("dd-MM-yyyy", date));
 
                                 }
                             }, currentDate.get(Calendar.YEAR), currentDate.get(Calendar.MONTH), currentDate.get(Calendar.DATE)).show();
@@ -2512,7 +2812,7 @@ public class MainActivity extends AppCompatActivity {
         LocalDate localDateFmtted = LocalDate.parse(dateVal, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String month = localDateFmtted.format(DateTimeFormatter.ofPattern("MMM")).toLowerCase();
 
-        String dateFmtted = localDateFmtted.getDayOfMonth()+"-"+ month +"-"+localDateFmtted.getYear();
+        String dateFmtted = localDateFmtted.getDayOfMonth() + "-" + month + "-" + localDateFmtted.getYear();
         return dateFmtted;
     }
 
@@ -2558,7 +2858,7 @@ public class MainActivity extends AppCompatActivity {
                 for (CustomItem customItem : itemList) {
                     itemVal += Double.valueOf(customItem.getSliderValue());
 
-                    if(map.containsKey(customItem.getName())) {
+                    if (map.containsKey(customItem.getName())) {
                         int itemQty = map.get(customItem.getName());
                         map.put(customItem.getName(), itemQty + (int) itemVal);
                     } else {
@@ -2629,7 +2929,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Reference to the Firebase Realtime Database
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
-                DatabaseReference databaseReference = database.getReference(deviceModel+"/"+"invoices");
+                DatabaseReference databaseReference = database.getReference(deviceModel + "/" + "invoices");
                 databaseReference.child("/").removeValue()
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
@@ -2641,7 +2941,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
 
-                database.getReference(deviceModel+"/"+"expenses").child("/").removeValue()
+                database.getReference(deviceModel + "/" + "expenses").child("/").removeValue()
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
                                 pd.dismiss();

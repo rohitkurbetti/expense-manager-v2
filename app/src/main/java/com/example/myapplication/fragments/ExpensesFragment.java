@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -232,5 +233,15 @@ public class ExpensesFragment extends Fragment {
             totalRecordsTextViewFragExp.setText("Total Records: "+cursor.getCount());
             totalAmountTextViewFragExp.setText("Total: "+INR_SYMBOL+"0");
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getAllExpensesFromInDb();
+
+        filteredExpenseList.clear();
+        filteredExpenseList.addAll(expenseList);
+        adapter.updateList(filteredExpenseList);
     }
 }

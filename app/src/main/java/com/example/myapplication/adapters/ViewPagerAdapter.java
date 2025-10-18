@@ -18,10 +18,9 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         switch (position) {
-            case 0:
-                return new InvoicesFragment();
             case 1:
                 return new ExpensesFragment();
+            case 0:
             default:
                 return new InvoicesFragment();
         }

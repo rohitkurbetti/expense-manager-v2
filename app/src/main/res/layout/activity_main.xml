@@ -1,52 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        app:titleTextColor="@color/common_google_signin_btn_text_dark_default"
-        android:background="?attr/colorPrimary"
-        app:title="Invoice Manager" />
+        android:background="?attr/colorPrimaryDark"
+        app:title="Invoice Manager"
+        app:titleTextColor="@color/common_google_signin_btn_text_dark_default" />
+
+    <!-- Toggle handle (small transparent view) -->
+    <View
+        android:id="@+id/toggleHandle"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:layout_below="@id/toolbar"
+        android:layout_margin="8dp"
+        android:background="@drawable/faint_gray_light"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardDashboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar"
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:color/white"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_weight=".9"
+                android:id="@+id/dashboardText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:padding="8dp"
+                android:textAlignment="center"
+                android:textSize="17sp" />
+
+            <ImageView
+                android:layout_weight=".1"
+                android:id="@+id/exclamationImageView"
+                android:contentDescription="Info"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                android:layout_marginVertical="8dp"
+                android:padding="8dp"
+                android:src="@drawable/exclamation_circle_svgrepo_com__2_" />
+
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewDashboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="52dp"
+            android:layout_marginBottom="25dp" />
+
+    </androidx.cardview.widget.CardView>
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/toolbar"
+        android:layout_below="@+id/cardDashboard"
         android:layout_marginTop="14dp"
         android:layout_marginBottom="80dp" />
 
     <TextView
-        android:visibility="gone"
         android:id="@+id/tvSelectiveTotalText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:text="Selective total text"
-        android:layout_marginBottom="24dp"
+        android:layout_alignParentBottom="true"
         android:layout_marginLeft="16dp"
+        android:layout_marginBottom="24dp"
+        android:text="Selective total text"
         android:textColor="?colorPrimaryDark"
         android:textSize="15sp"
-        />
+        android:visibility="gone" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/id_add"
         app:elevation="6dp"
         app:fabSize="normal"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
         app:layout_anchor="@id/recyclerView"
         app:layout_anchorGravity="bottom|end" />
 

@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         app:titleTextColor="@color/common_google_signin_btn_text_dark_default"
-        android:background="?attr/colorPrimary"
+        android:background="?attr/colorPrimaryDark"
         app:title="Configurations" />
 
 

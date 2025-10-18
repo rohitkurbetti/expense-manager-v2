@@ -22,7 +22,6 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Remove One"
             android:scaleType="centerInside"
             android:src="@drawable/chevron_down_svgrepo_com"
             app:tint="@color/text_dark_secondary" />
