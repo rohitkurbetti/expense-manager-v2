@@ -1,8 +1,19 @@
 package com.example.myapplication;
 
+import static com.example.myapplication.constants.InvoiceConstants.MONTHLY_REPORTS_EXPORT_FOLDER_PATH;
+import static com.example.myapplication.constants.InvoiceConstants.MONTHLY_SALES_REPORT_FILENAME;
+import static com.example.myapplication.constants.InvoiceConstants.PDF_EXTENSION;
+
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -12,6 +23,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,16 +31,21 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.MainAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.dtos.Day;
+import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
 import com.example.myapplication.dtos.Month;
 import com.example.myapplication.dtos.Year;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -37,10 +54,12 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.apache.commons.lang3.exception.ContextedException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -48,12 +67,16 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
-public class CloudSummary extends AppCompatActivity {
+public class CloudSummary extends BaseActivity {
     DatabaseReference databaseReference;
     DatabaseReference usersRef;
     ProgressDialog progressDialog;
@@ -68,12 +91,13 @@ public class CloudSummary extends AppCompatActivity {
     private CopyOnWriteArrayList<Year> yearList;
     private TextView yearTotal;
     private static TextView noDataCloudTextView;
-    private static ImageView noDataCloudImageView;
+    private static ImageView noDataCloudImageView,yearlySalesBtn;
+    private Map<String, Integer> amountMap= new HashMap<>();
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        applyUserTheme();
+        // applyUserTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cloud_summary);
         recyclerView = findViewById(R.id.recyclerview);
@@ -81,7 +105,9 @@ public class CloudSummary extends AppCompatActivity {
         yearTotal = findViewById(R.id.yearTotal);
         noDataCloudTextView = findViewById(R.id.noDataCloudTextView);
         noDataCloudImageView = findViewById(R.id.noDataCloudImageView);
+        yearlySalesBtn = findViewById(R.id.yearlySalesBtn);
         progressDialog = new ProgressDialog(this);
+        ProgressBar pb = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         monthList = new CopyOnWriteArrayList<>();
@@ -102,66 +128,57 @@ public class CloudSummary extends AppCompatActivity {
                 // Handle no selection
             }
         });
+
+
+        yearlySalesBtn.setOnClickListener(v -> {
+            progressDialog.setMessage("Generating Yearly Report");
+            progressDialog.show();
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    List<DtoJsonEntity> finalList = new ArrayList<>();
+                    yearList.forEach(year -> {
+                        year.getMonthList().forEach(month -> {
+                            month.getDayList().forEach(day -> {
+                                finalList.addAll(day.getDtoJsonEntityList());
+                            });
+                        });
+                    });
+
+                    Map<String, Integer> mapResovled = parseJsonAndCalculateYearly(finalList);
+
+                    mapResovled.forEach((k, val) -> {
+                        amountGrandtotal += (InvoiceConstants.ITEM_PRICE_MAP.containsKey(k.toUpperCase(Locale.ENGLISH)) ?
+                                val * InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(k.toUpperCase(Locale.ENGLISH),0) :
+                                amountMap.getOrDefault(k.toUpperCase(Locale.ENGLISH), 0));
+                        System.err.println(k+" "+amountGrandtotal);
+                    });
+
+                    File pdfFile = generateMonthlyReport(CloudSummary.this, mapResovled, amountMap, yearList.get(0).getYearName(), amountGrandtotal);
+
+                    // Update UI on main thread
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressDialog.dismiss();
+                            if (pdfFile != null) {
+                                showSnackbarWithOpenActionYearly(pdfFile, CloudSummary.this);
+                            }
+                        }
+                    });
+
+
+                    amountGrandtotal=0;
+                    mapResovled.clear();
+                    amountMap.clear();
+                }
+            }).start();
+        });
+
     }
 
-    private void applyUserTheme() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
-
-        switch (theme) {
-            case "Default":
-                setTheme(R.style.Base_Theme_MyApplication);
-                break;
-            case "Red":
-                setTheme(R.style.AppTheme_Red);
-                break;
-            case "Blue":
-                setTheme(R.style.AppTheme_Blue);
-                break;
-            case "Green":
-                setTheme(R.style.AppTheme_Green);
-                break;
-            case "Purple":
-                setTheme(R.style.AppTheme_Purple);
-                break;
-            case "Orange":
-                setTheme(R.style.AppTheme_Orange);
-                break;
-            case "Teal":
-                setTheme(R.style.AppTheme_Teal);
-                break;
-            case "Pink":
-                setTheme(R.style.AppTheme_Pink);
-                break;
-            case "Cyan":
-                setTheme(R.style.AppTheme_Cyan);
-                break;
-            case "Lime":
-                setTheme(R.style.AppTheme_Lime);
-                break;
-            case "Brown":
-                setTheme(R.style.AppTheme_Brown);
-                break;
-            case "Mint":
-                setTheme(R.style.AppTheme_Mint);
-                break;
-            case "Coral":
-                setTheme(R.style.AppTheme_Coral);
-                break;
-            case "Steel":
-                setTheme(R.style.AppTheme_Steel);
-                break;
-            case "Lavender":
-                setTheme(R.style.AppTheme_Lavender);
-                break;
-            case "Mustard":
-                setTheme(R.style.AppTheme_Mustard);
-                break;
-            default:
-                setTheme(R.style.Base_Theme_MyApplication);
-                break;
-        }
-    }
+    // private void applyUserTheme() { ... } removed
 
 
     private void loadSpinner(AppCompatSpinner yearSpinner) {
@@ -190,8 +207,10 @@ public class CloudSummary extends AppCompatActivity {
         // Optionally, set the current year as the selected item
         yearSpinner.setSelection(adapter.getPosition(String.valueOf(currentYear)));
     }
+    private Integer amountGrandtotal=0;
 
     private void fetchFromFirebase(Map<String, List<DtoJsonEntity>> map) {
+
         progressDialog.setMessage("Fetching from cloud database");
         progressDialog.show();
 
@@ -298,6 +317,12 @@ public class CloudSummary extends AppCompatActivity {
                 // Set the adapter
                 mainAdapter = new MainAdapter(CloudSummary.this, monthList);
                 recyclerView.setAdapter(mainAdapter);
+
+                List<DtoJsonEntity> finalList = new ArrayList<>();
+
+
+
+
             }
 
             private void exportJsonToFile(String finalOutput, String fileName) {
@@ -325,5 +350,241 @@ public class CloudSummary extends AppCompatActivity {
                 System.err.println("Error: " + databaseError.getMessage());
             }
         });
+    }
+
+    private void showSnackbarWithOpenActionYearly(File pdfFile, Context context) {
+        View rootView = findViewById(android.R.id.content);
+
+        Snackbar snackbar = Snackbar.make(rootView, "PDF generated successfully!", Snackbar.LENGTH_LONG);
+        snackbar.setAction("Open", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openPdf(pdfFile);
+            }
+        });
+        snackbar.show();
+    }
+
+    private void openPdf(File pdfFile) {
+        // Create intent
+        Context context = CloudSummary.this;
+        Uri pdfUri = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", pdfFile);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(pdfUri, "application/pdf");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        try {
+            context.startActivity(Intent.createChooser(intent, "Open PDF with"));
+        } catch (Exception e) {
+            Toast.makeText(context, "No application available to open PDF", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    private File generateMonthlyReport(Context context, Map<String, Integer> mainItemList, Map<String, Integer> amountMap, String yearName, Integer amountGrandtotal) {
+
+        PdfDocument pdfDocument = new PdfDocument();
+        Paint paint = new Paint();
+        Paint titlePaint = new Paint();
+        Paint totalPaint = new Paint();
+
+        // Page dimensions
+        int pageWidth = 300;
+        int pageHeight = 600;
+
+        // Margins and positions
+        int leftMargin = 10;
+        int rightMargin = 10;
+        int topMargin = 40;
+        int bottomMargin = 40;
+
+        // Current Y position and line height
+        int currentY = topMargin;
+        int lineHeight = 20;
+
+        // Table positions
+        int productColX = 30;
+        int quantityColX = 140;
+        int amountColX = 220;
+
+        // Start first page
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page currentPage = pdfDocument.startPage(pageInfo);
+        Canvas canvas = currentPage.getCanvas();
+
+        // Title (only on first page)
+        titlePaint.setTextAlign(Paint.Align.CENTER);
+        titlePaint.setColor(Color.BLACK);
+        titlePaint.setTextSize(16f);
+        canvas.drawText("Yearly Sales Report ("+yearName+")", pageWidth / 2, currentY, titlePaint);
+        currentY += 40;
+
+        // Total (only on first page)
+        totalPaint.setTextAlign(Paint.Align.LEFT);
+        totalPaint.setColor(Color.BLACK);
+        totalPaint.setTextSize(13f);
+        canvas.drawText("Total \u20B9"+amountGrandtotal, 15, currentY, totalPaint);
+        currentY += 40;
+
+        // Table headers
+        paint.setTextAlign(Paint.Align.LEFT);
+        paint.setColor(Color.BLACK);
+        paint.setTextSize(12f);
+        paint.setTypeface(Typeface.MONOSPACE);
+        canvas.drawText("Product", productColX, currentY, paint);
+        canvas.drawText("Quantity", quantityColX, currentY, paint);
+        canvas.drawText("Amount", amountColX, currentY, paint);
+        currentY += 10;
+
+        // Draw horizontal line under headers
+        canvas.drawLine(leftMargin, currentY, pageWidth - rightMargin, currentY, paint);
+        currentY += 20;
+
+        Map<String, Integer> sortedMap = mainItemList.entrySet()
+                .stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new
+                ));
+
+        // Table rows
+        for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
+            String product = entry.getKey();
+            Integer quantity = entry.getValue();
+
+            // Calculate amount
+            int amount = InvoiceConstants.ITEM_PRICE_MAP.containsKey(product) ?
+                    quantity * InvoiceConstants.ITEM_PRICE_MAP.getOrDefault(product, 0) :
+                    amountMap.getOrDefault(product, 0);
+
+            // Check if we need a new page
+            if (currentY + lineHeight > pageHeight - bottomMargin) {
+                // Finish current page
+                pdfDocument.finishPage(currentPage);
+
+                // Start new page
+                pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.getPages().size() + 1).create();
+                currentPage = pdfDocument.startPage(pageInfo);
+                canvas = currentPage.getCanvas();
+                currentY = topMargin;
+
+                // Add table headers on new page (optional)
+                paint.setTextAlign(Paint.Align.LEFT);
+                paint.setColor(Color.BLACK);
+                paint.setTextSize(12f);
+                canvas.drawText("Product", productColX, currentY, paint);
+                canvas.drawText("Quantity", quantityColX, currentY, paint);
+                canvas.drawText("Amount", amountColX, currentY, paint);
+                currentY += 10;
+                canvas.drawLine(leftMargin, currentY, pageWidth - rightMargin, currentY, paint);
+                currentY += 20;
+            }
+
+            // Draw table row
+            canvas.drawText(product, productColX, currentY, paint);
+            canvas.drawText(String.valueOf(quantity), quantityColX, currentY, paint);
+            canvas.drawText(String.valueOf(amount), amountColX, currentY, paint);
+            currentY += lineHeight;
+        }
+
+        // Finish the last page
+        pdfDocument.finishPage(currentPage);
+
+        // Save PDF to external storage
+        File folder = new File(Environment.getExternalStorageDirectory()+"/"+Environment.DIRECTORY_DOCUMENTS + MONTHLY_REPORTS_EXPORT_FOLDER_PATH);
+
+        if(!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        File pdfFile = new File(folder, MONTHLY_SALES_REPORT_FILENAME + yearName+System.currentTimeMillis() + PDF_EXTENSION);
+        try {
+            pdfDocument.writeTo(new FileOutputStream(pdfFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(context, "Error while generating PDF!", Toast.LENGTH_SHORT).show();
+        }
+        pdfDocument.close();
+        return pdfFile;
+
+    }
+    static int otherAmount = 0;
+
+    private Map<String, Integer> parseJsonAndCalculateYearly(List<DtoJsonEntity> finalList) {
+        int qty=0;
+        int amount=0;
+
+        Map<String, Integer> itemSaleMap = new HashMap<>();
+
+        for (DtoJsonEntity item : finalList) {
+            String itemJson = item.getItemListJsonStr();
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            try {
+
+                DtoJson itemObject = objectMapper.readValue(itemJson, DtoJson.class);
+
+                List<CustomItem> items = itemObject.getItemList();
+                List<CustomItem> otherItems = itemObject.getOtherItemsList();
+                amount = 0;
+
+                if(otherItems !=null && otherItems.size()>0) {
+                    items.addAll(otherItems);
+                }
+
+                for (CustomItem i : items) {
+                    if (itemSaleMap.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                        int tempQty = itemSaleMap.get(i.getName().toUpperCase(Locale.ENGLISH));
+                        qty = (int) i.getSliderValue() + tempQty;
+                        if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                            otherAmount = otherAmount + i.getAmount();
+                        } else {
+                            amount = amount + i.getAmount();
+                        }
+
+                        itemSaleMap.put(i.getName().toUpperCase(Locale.ENGLISH), qty);
+                        item.setName(i.getName());
+                    } else {
+                        amount = 0;
+                        otherAmount = 0;
+                        itemSaleMap.put(i.getName().toUpperCase(Locale.ENGLISH), (int) i.getSliderValue());
+                        qty = (int) i.getSliderValue();
+                        if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                            otherAmount = otherAmount + i.getAmount();
+                        } else {
+                            amount = amount + i.getAmount();
+                        }
+                        item.setName(i.getName());
+                        item.setQty(Long.valueOf(qty));
+
+                    }
+                    if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(i.getName().toUpperCase(Locale.ENGLISH))) {
+                        int amt = amountMap.getOrDefault(i.getName().toUpperCase(Locale.ENGLISH),0);
+                        int i1 = i.getAmount() + amt;
+                        amountMap.put(i.getName().toUpperCase(Locale.ENGLISH), i1);
+                    } else {
+                        amountMap.put(i.getName().toUpperCase(Locale.ENGLISH), amount);
+                    }
+                }
+                if(!InvoiceConstants.ITEM_PRICE_MAP.containsKey(item.getName().toUpperCase(Locale.ENGLISH))) {
+                    item.setTotal(Long.valueOf(otherAmount));
+                } else {
+
+                    item.setTotal(Long.valueOf(amount));
+                }
+
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.err.println("map: "+ itemSaleMap);
+        System.err.println("amountMap: "+ amountMap);
+//        amountMap.clear();
+        return itemSaleMap;
     }
 }

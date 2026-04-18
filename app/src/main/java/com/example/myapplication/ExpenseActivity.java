@@ -12,11 +12,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -40,7 +38,6 @@ import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -78,8 +75,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-public class ExpenseActivity extends AppCompatActivity {
+public class ExpenseActivity extends BaseActivity {
 
+    public static List<ExpenseRecyclerView> expenseItems = new ArrayList<>();
     private EditText etExpenseParticulars, etExpenseAmount, etExpenseDateTime;
     private Button btnSaveExpense, getExpenses;
     private ExpenseDbHelper expenseDbHelper;
@@ -87,16 +85,145 @@ public class ExpenseActivity extends AppCompatActivity {
     private TextView textViewExpenseTotal, textViewBalanceTotal, textViewDate;
     private RecyclerView expenseRecyclerView;
     private ExpenseRecyclerViewAdapter expenseRecyclerViewAdapter;
-    public static List<ExpenseRecyclerView> expenseItems = new ArrayList<>();
     private ArrayAdapter<String> spinnerAdapter;
     private String expParticularsJson = null;
     private Menu menu;
 
+    public static Bitmap generateInitialsImage(String firstName, String lastName, int sizeInDp, Context context) {
+        String initials = "";
+        if (firstName != null && !firstName.isEmpty()) {
+            initials += firstName.substring(0, 1).toUpperCase();
+        }
+        if (lastName != null && !lastName.isEmpty()) {
+            initials += lastName.substring(0, 1).toUpperCase();
+        }
+
+        int sizeInPx = (int) (sizeInDp * context.getResources().getDisplayMetrics().density);
+        Bitmap bitmap = Bitmap.createBitmap(sizeInPx, sizeInPx, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        // Draw circle background
+        Paint circlePaint = new Paint();
+
+        int[] colors = {
+                Color.parseColor("#F44336"), // Red
+                Color.parseColor("#E91E63"), // Pink
+                Color.parseColor("#9C27B0"), // Purple
+                Color.parseColor("#3F51B5"), // Indigo
+                Color.parseColor("#03A9F4"), // Light Blue
+                Color.parseColor("#009688"), // Teal
+                Color.parseColor("#4CAF50"), // Green
+                Color.parseColor("#FF9800"), // Orange
+                Color.parseColor("#795548")  // Brown
+        };
+
+        Random random = new Random();
+        int randomColor = colors[random.nextInt(colors.length)];
+        circlePaint.setColor(randomColor);
+
+        circlePaint.setAntiAlias(true);
+        canvas.drawCircle(sizeInPx / 2, sizeInPx / 2, sizeInPx / 2, circlePaint);
+
+        // Draw text (initials)
+        Paint textPaint = new Paint();
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(sizeInPx / 2); // Adjust text size
+        textPaint.setAntiAlias(true);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+
+        Paint.FontMetrics fontMetrics = textPaint.getFontMetrics();
+        float x = sizeInPx / 2f;
+        float y = sizeInPx / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2;
+
+        canvas.drawText(initials, x, y, textPaint);
+
+        return bitmap;
+    }
+
+    // private void applyUserTheme() { ... } removed
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static void saveExpenseOnCloud(Context context, String date, Expense expense) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+
+        SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
+        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+
+        DatabaseReference expRef = database.getReference(deviceModel + "/" + "expenses");
+
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        LocalDate localDate = LocalDate.parse(date, dateTimeFormatter);
+
+        boolean todaysDate = true;
+        if (localDate.equals(LocalDate.now())) {
+            todaysDate = true;
+        } else {
+            todaysDate = false;
+        }
+
+        int year = localDate.getYear();
+        Month month = localDate.getMonth();
+        int day = localDate.getDayOfMonth();
+
+        String monthShort = month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH); // e.g., "Dec"
+
+        String sendLocalDate = LocalDate.now().toString();
+//        String sendLocalDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss"));
+
+        // Store user data
+        expRef.child(year + "").child(monthShort + "-" + year).child(todaysDate == true ? sendLocalDate : localDate + "")
+                .setValue(expense)
+                .addOnSuccessListener(aVoid -> {
+                    // Data stored successfully
+                    Toast.makeText(context, "Expense saved on cloud successfully!", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    // Failed to store data
+                    Toast.makeText(context, "Failed to save expense data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static List<LocalDate> findMissingDates(List<Expense> dateStrings) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        Set<LocalDate> dateSet = new HashSet<>();
+        // Parse strings to LocalDate and store in a set
+        for (Expense dateStr : dateStrings) {
+            dateSet.add(LocalDate.parse(dateStr.getExpenseDate(), formatter));
+        }
+
+        // Find the min and max dates
+        LocalDate minDate = Collections.min(dateSet);
+        LocalDate maxDate = Collections.max(dateSet);
+
+        List<LocalDate> missingDates = new ArrayList<>();
+
+        // Loop through the range and check for missing dates
+        for (LocalDate date = minDate; !date.isAfter(maxDate); date = date.plusDays(1)) {
+            if (!dateSet.contains(date)) {
+
+                LocalDate finalDate = date;
+                boolean isExists = dateStrings.stream().anyMatch(ex -> ex.getExpenseDate().contains(String.valueOf(finalDate)));
+                List<Expense> tempExp = new ArrayList<>();
+                if (isExists) {
+                    tempExp = dateStrings.stream().filter(expense -> expense.getExpenseDate().equalsIgnoreCase(String.valueOf(finalDate)))
+                            .filter(exp -> exp.getYesterdaysBalance() > 0).collect(Collectors.toList());
+                    System.err.println(" missing dates >> " + tempExp.size());
+                } else {
+                    missingDates.add(date);
+                    System.err.println(" missing dates. >> " + tempExp.size());
+                }
+            }
+        }
+        return missingDates;
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        applyUserTheme();  // Apply before setContentView
+        // applyUserTheme();  // Apply before setContentView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_expense);
 
@@ -169,7 +296,7 @@ public class ExpenseActivity extends AppCompatActivity {
                         int id = cursor.getInt(0);
                         String expPart = cursor.getString(1);
                         int expAmt = cursor.getInt(2);
-                        String expDateTime = cursor.getString(3);
+//                        String expDateTime = cursor.getString(3);
                         String expDate = cursor.getString(4);
                         int yBalance = cursor.getInt(5);
                         int sales = cursor.getInt(6);
@@ -200,10 +327,10 @@ public class ExpenseActivity extends AppCompatActivity {
                         col3.setGravity(Gravity.CENTER);
 
 
-                        TextView col4 = new TextView(ExpenseActivity.this);
-                        col4.setText(String.valueOf(expDateTime));
-                        col4.setPadding(16, 16, 16, 16);
-                        col4.setGravity(Gravity.CENTER);
+//                        TextView col4 = new TextView(ExpenseActivity.this);
+//                        col4.setText(String.valueOf(expDateTime));
+//                        col4.setPadding(16, 16, 16, 16);
+//                        col4.setGravity(Gravity.CENTER);
 
 
                         TextView col5 = new TextView(ExpenseActivity.this);
@@ -234,7 +361,7 @@ public class ExpenseActivity extends AppCompatActivity {
                         tableRow.addView(col1);
                         tableRow.addView(col2);
                         tableRow.addView(col3);
-                        tableRow.addView(col4);
+//                        tableRow.addView(col4);
                         tableRow.addView(col5);
                         tableRow.addView(col6);
                         tableRow.addView(col7);
@@ -282,11 +409,11 @@ public class ExpenseActivity extends AppCompatActivity {
                 col3.setGravity(Gravity.CENTER);
 
 
-                TextView col4 = new TextView(ExpenseActivity.this);
-                col4.setTypeface(null, Typeface.BOLD); // Set text as bold
-                col4.setText(String.valueOf("Date Time"));
-                col4.setPadding(16, 16, 16, 16);
-                col4.setGravity(Gravity.CENTER);
+//                TextView col4 = new TextView(ExpenseActivity.this);
+//                col4.setTypeface(null, Typeface.BOLD); // Set text as bold
+//                col4.setText(String.valueOf("Date Time"));
+//                col4.setPadding(16, 16, 16, 16);
+//                col4.setGravity(Gravity.CENTER);
 
 
                 TextView col5 = new TextView(ExpenseActivity.this);
@@ -320,7 +447,7 @@ public class ExpenseActivity extends AppCompatActivity {
                 tableHeaderRow.addView(col1);
                 tableHeaderRow.addView(col2);
                 tableHeaderRow.addView(col3);
-                tableHeaderRow.addView(col4);
+//                tableHeaderRow.addView(col4);
                 tableHeaderRow.addView(col5);
                 tableHeaderRow.addView(col6);
                 tableHeaderRow.addView(col7);
@@ -472,118 +599,6 @@ public class ExpenseActivity extends AppCompatActivity {
 
     }
 
-    private void applyUserTheme() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
-
-        switch (theme) {
-            case "Default":
-                setTheme(R.style.Base_Theme_MyApplication);
-                break;
-            case "Red":
-                setTheme(R.style.AppTheme_Red);
-                break;
-            case "Blue":
-                setTheme(R.style.AppTheme_Blue);
-                break;
-            case "Green":
-                setTheme(R.style.AppTheme_Green);
-                break;
-            case "Purple":
-                setTheme(R.style.AppTheme_Purple);
-                break;
-            case "Orange":
-                setTheme(R.style.AppTheme_Orange);
-                break;
-            case "Teal":
-                setTheme(R.style.AppTheme_Teal);
-                break;
-            case "Pink":
-                setTheme(R.style.AppTheme_Pink);
-                break;
-            case "Cyan":
-                setTheme(R.style.AppTheme_Cyan);
-                break;
-            case "Lime":
-                setTheme(R.style.AppTheme_Lime);
-                break;
-            case "Brown":
-                setTheme(R.style.AppTheme_Brown);
-                break;
-            case "Mint":
-                setTheme(R.style.AppTheme_Mint);
-                break;
-            case "Coral":
-                setTheme(R.style.AppTheme_Coral);
-                break;
-            case "Steel":
-                setTheme(R.style.AppTheme_Steel);
-                break;
-            case "Lavender":
-                setTheme(R.style.AppTheme_Lavender);
-                break;
-            case "Mustard":
-                setTheme(R.style.AppTheme_Mustard);
-                break;
-            default:
-                setTheme(R.style.Base_Theme_MyApplication);
-                break;
-        }
-    }
-
-
-    public static Bitmap generateInitialsImage(String firstName, String lastName, int sizeInDp, Context context) {
-        String initials = "";
-        if (firstName != null && !firstName.isEmpty()) {
-            initials += firstName.substring(0, 1).toUpperCase();
-        }
-        if (lastName != null && !lastName.isEmpty()) {
-            initials += lastName.substring(0, 1).toUpperCase();
-        }
-
-        int sizeInPx = (int) (sizeInDp * context.getResources().getDisplayMetrics().density);
-        Bitmap bitmap = Bitmap.createBitmap(sizeInPx, sizeInPx, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-
-        // Draw circle background
-        Paint circlePaint = new Paint();
-
-        int[] colors = {
-                Color.parseColor("#F44336"), // Red
-                Color.parseColor("#E91E63"), // Pink
-                Color.parseColor("#9C27B0"), // Purple
-                Color.parseColor("#3F51B5"), // Indigo
-                Color.parseColor("#03A9F4"), // Light Blue
-                Color.parseColor("#009688"), // Teal
-                Color.parseColor("#4CAF50"), // Green
-                Color.parseColor("#FF9800"), // Orange
-                Color.parseColor("#795548")  // Brown
-        };
-
-        Random random = new Random();
-        int randomColor = colors[random.nextInt(colors.length)];
-        circlePaint.setColor(randomColor);
-
-        circlePaint.setAntiAlias(true);
-        canvas.drawCircle(sizeInPx / 2, sizeInPx / 2, sizeInPx / 2, circlePaint);
-
-        // Draw text (initials)
-        Paint textPaint = new Paint();
-        textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(sizeInPx / 2); // Adjust text size
-        textPaint.setAntiAlias(true);
-        textPaint.setTextAlign(Paint.Align.CENTER);
-
-        Paint.FontMetrics fontMetrics = textPaint.getFontMetrics();
-        float x = sizeInPx / 2f;
-        float y = sizeInPx / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2;
-
-        canvas.drawText(initials, x, y, textPaint);
-
-        return bitmap;
-    }
-
-
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -658,7 +673,6 @@ public class ExpenseActivity extends AppCompatActivity {
         toast.setGravity(Gravity.TOP | Gravity.CENTER, toast.getXOffset(), toast.getYOffset());
         toast.show();
     }
-
 
     // Handle back button click
     @Override
@@ -908,84 +922,6 @@ public class ExpenseActivity extends AppCompatActivity {
         writer.flush();
         writer.close();
 
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public static void saveExpenseOnCloud(Context context, String date, Expense expense) {
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-
-        SharedPreferences sharedPreferences = context.getSharedPreferences("my_shared_prefs", Context.MODE_PRIVATE);
-        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
-
-        DatabaseReference expRef = database.getReference(deviceModel + "/" + "expenses");
-
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-        LocalDate localDate = LocalDate.parse(date, dateTimeFormatter);
-
-        boolean todaysDate = true;
-        if (localDate.equals(LocalDate.now())) {
-            todaysDate = true;
-        } else {
-            todaysDate = false;
-        }
-
-        int year = localDate.getYear();
-        Month month = localDate.getMonth();
-        int day = localDate.getDayOfMonth();
-
-        String monthShort = month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH); // e.g., "Dec"
-
-        String sendLocalDate = LocalDate.now().toString();
-//        String sendLocalDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss"));
-
-        // Store user data
-        expRef.child(year + "").child(monthShort + "-" + year).child(todaysDate == true ? sendLocalDate : localDate + "")
-                .setValue(expense)
-                .addOnSuccessListener(aVoid -> {
-                    // Data stored successfully
-                    Toast.makeText(context, "Expense saved on cloud successfully!", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    // Failed to store data
-                    Toast.makeText(context, "Failed to save expense data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public static List<LocalDate> findMissingDates(List<Expense> dateStrings) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        Set<LocalDate> dateSet = new HashSet<>();
-        // Parse strings to LocalDate and store in a set
-        for (Expense dateStr : dateStrings) {
-            dateSet.add(LocalDate.parse(dateStr.getExpenseDate(), formatter));
-        }
-
-        // Find the min and max dates
-        LocalDate minDate = Collections.min(dateSet);
-        LocalDate maxDate = Collections.max(dateSet);
-
-        List<LocalDate> missingDates = new ArrayList<>();
-
-        // Loop through the range and check for missing dates
-        for (LocalDate date = minDate; !date.isAfter(maxDate); date = date.plusDays(1)) {
-            if (!dateSet.contains(date)) {
-
-                LocalDate finalDate = date;
-                boolean isExists = dateStrings.stream().anyMatch(ex -> ex.getExpenseDate().contains(String.valueOf(finalDate)));
-                List<Expense> tempExp = new ArrayList<>();
-                if (isExists) {
-                    tempExp = dateStrings.stream().filter(expense -> expense.getExpenseDate().equalsIgnoreCase(String.valueOf(finalDate)))
-                            .filter(exp -> exp.getYesterdaysBalance() > 0).collect(Collectors.toList());
-                    System.err.println(" missing dates >> " + tempExp.size());
-                } else {
-                    missingDates.add(date);
-                    System.err.println(" missing dates. >> " + tempExp.size());
-                }
-            }
-        }
-        return missingDates;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)

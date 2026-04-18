@@ -53,6 +53,13 @@
             android:text="--"
         />
 
+        <ImageView
+            android:id="@+id/yearlySalesBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/piggybank_pig_svgrepo_com"
+            />
+
 
     </LinearLayout>
 

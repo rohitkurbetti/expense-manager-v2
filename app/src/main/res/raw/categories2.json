@@ -1,0 +1,175 @@
+{
+  "categories": [
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "subCategories": [
+        {
+          "id": "smartphones",
+          "name": "Smartphones",
+          "subCategories": [
+            {"id": "android", "name": "Android Phones", "subCategories": []},
+            {"id": "iphones", "name": "iPhones", "subCategories": []},
+            {"id": "basic", "name": "Basic Phones", "subCategories": []},
+            {"id": "refurbished", "name": "Refurbished Phones", "subCategories": []}
+          ]
+        },
+        {
+          "id": "laptops",
+          "name": "Laptops",
+          "subCategories": [
+            {"id": "gaming", "name": "Gaming Laptops", "subCategories": []},
+            {"id": "ultrabooks", "name": "Ultrabooks", "subCategories": []},
+            {"id": "business", "name": "Business Laptops", "subCategories": []},
+            {"id": "2in1", "name": "2-in-1 Laptops", "subCategories": []}
+          ]
+        },
+        {
+          "id": "tv_audio",
+          "name": "TV & Audio",
+          "subCategories": [
+            {
+              "id": "televisions",
+              "name": "Televisions",
+              "subCategories": [
+                {"id": "smart", "name": "Smart TVs", "subCategories": []},
+                {"id": "4k", "name": "4K Ultra HD", "subCategories": []},
+                {"id": "qled", "name": "QLED TVs", "subCategories": []},
+                {"id": "oled", "name": "OLED TVs", "subCategories": []}
+              ]
+            },
+            {
+              "id": "audio",
+              "name": "Audio",
+              "subCategories": [
+                {"id": "headphones", "name": "Headphones", "subCategories": []},
+                {"id": "earphones", "name": "Earphones", "subCategories": []},
+                {"id": "speakers", "name": "Speakers", "subCategories": []},
+                {"id": "soundbars", "name": "Soundbars", "subCategories": []}
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cameras",
+          "name": "Cameras",
+          "subCategories": [
+            {"id": "dslr", "name": "DSLR Cameras", "subCategories": []},
+            {"id": "mirrorless", "name": "Mirrorless Cameras", "subCategories": []},
+            {"id": "pointshoot", "name": "Point & Shoot", "subCategories": []},
+            {"id": "action", "name": "Action Cameras", "subCategories": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fashion",
+      "name": "Fashion",
+      "subCategories": [
+        {
+          "id": "mens",
+          "name": "Men's Fashion",
+          "subCategories": [
+            {
+              "id": "mens_clothing",
+              "name": "Clothing",
+              "subCategories": [
+                {"id": "tshirts", "name": "T-Shirts", "subCategories": []},
+                {"id": "shirts", "name": "Shirts", "subCategories": []},
+                {"id": "jeans", "name": "Jeans", "subCategories": []},
+                {"id": "trousers", "name": "Trousers", "subCategories": []}
+              ]
+            },
+            {
+              "id": "mens_footwear",
+              "name": "Footwear",
+              "subCategories": [
+                {"id": "casual", "name": "Casual Shoes", "subCategories": []},
+                {"id": "sports", "name": "Sports Shoes", "subCategories": []},
+                {"id": "formal", "name": "Formal Shoes", "subCategories": []},
+                {"id": "sandals", "name": "Sandals", "subCategories": []}
+              ]
+            }
+          ]
+        },
+        {
+          "id": "womens",
+          "name": "Women's Fashion",
+          "subCategories": [
+            {
+              "id": "womens_clothing",
+              "name": "Clothing",
+              "subCategories": [
+                {"id": "dresses", "name": "Dresses", "subCategories": []},
+                {"id": "tops", "name": "Tops & Tees", "subCategories": []},
+                {"id": "jeans_w", "name": "Jeans", "subCategories": []},
+                {"id": "ethnic", "name": "Ethnic Wear", "subCategories": []}
+              ]
+            },
+            {
+              "id": "womens_footwear",
+              "name": "Footwear",
+              "subCategories": [
+                {"id": "heels", "name": "Heels", "subCategories": []},
+                {"id": "flats", "name": "Flats", "subCategories": []},
+                {"id": "sports_w", "name": "Sports Shoes", "subCategories": []},
+                {"id": "sandals_w", "name": "Sandals", "subCategories": []}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "name": "Home & Kitchen",
+      "subCategories": [
+        {
+          "id": "furniture",
+          "name": "Furniture",
+          "subCategories": [
+            {"id": "living", "name": "Living Room", "subCategories": []},
+            {"id": "bedroom", "name": "Bedroom", "subCategories": []},
+            {"id": "dining", "name": "Dining & Kitchen", "subCategories": []},
+            {"id": "office", "name": "Home Office", "subCategories": []}
+          ]
+        },
+        {
+          "id": "kitchen",
+          "name": "Kitchen & Dining",
+          "subCategories": [
+            {"id": "cookware", "name": "Cookware", "subCategories": []},
+            {"id": "storage", "name": "Kitchen Storage", "subCategories": []},
+            {"id": "dining_serve", "name": "Dining & Serving", "subCategories": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beauty",
+      "name": "Beauty & Personal Care",
+      "subCategories": [
+        {
+          "id": "makeup",
+          "name": "Makeup",
+          "subCategories": [
+            {"id": "lipstick", "name": "Lipstick", "subCategories": []},
+            {"id": "foundation", "name": "Foundation", "subCategories": []},
+            {"id": "eyes", "name": "Eyes", "subCategories": []},
+            {"id": "nail", "name": "Nail Care", "subCategories": []}
+          ]
+        },
+        {
+          "id": "skincare",
+          "name": "Skincare",
+          "subCategories": [
+            {"id": "facewash", "name": "Face Wash", "subCategories": []},
+            {"id": "moisturizers", "name": "Moisturizers", "subCategories": []},
+            {"id": "serums", "name": "Serums", "subCategories": []},
+            {"id": "sunscreen", "name": "Sunscreen", "subCategories": []}
+          ]
+        }
+      ]
+    }
+  ]
+}

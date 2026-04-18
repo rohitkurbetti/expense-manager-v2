@@ -1,14 +1,12 @@
 package com.example.myapplication.database;
 
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-
-
-import android.content.ContentValues;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
@@ -17,7 +15,6 @@ import com.example.myapplication.ExpenseActivity;
 import com.example.myapplication.ExpenseRecyclerView;
 import com.example.myapplication.ExpenseRecyclerViewAdapter;
 import com.example.myapplication.adapters.Expense;
-import com.example.myapplication.dtos.Invoice;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -33,8 +30,6 @@ import java.util.stream.Collectors;
 
 public class ExpenseDbHelper extends SQLiteOpenHelper {
 
-    private static final String DATABASE_NAME = "expenses.db";
-    private static final int DATABASE_VERSION = 1;
     public static final String TABLE_EXPENSES = "expenses";
     public static final String COLUMN_ID = "id";
     public static final String COLUMN_PARTICULARS = "expenseParticulars";
@@ -44,6 +39,8 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
     public static final String COLUMN_YESTERDAYS_BALANCE = "yesterdaysBalance";
     public static final String COLUMN_SALES = "sales";
     public static final String COLUMN_BALANCE = "balance";
+    private static final String DATABASE_NAME = "expenses.db";
+    private static final int DATABASE_VERSION = 1;
     private final Context context;
 
     public ExpenseDbHelper(Context context) {
@@ -166,7 +163,7 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
 
     public Cursor getAllExpenses() {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by " + COLUMN_DATE + " desc ", null);
+        return db.rawQuery("select * from " + TABLE_EXPENSES + " order by " + COLUMN_DATE + " asc ", null);
     }
 
 
@@ -409,12 +406,41 @@ public class ExpenseDbHelper extends SQLiteOpenHelper {
         }
 
         invoiceDates.forEach(i -> {
-            if(!expDates.contains(i)) {
+            if (!expDates.contains(i)) {
                 Log.i(" >>>>>><<< ", " not found :: " + i);
                 finalSet.add(i);
             }
         });
         return finalSet;
+    }
+
+    public Cursor getExpensesPeriod(String fromDate, String toDate) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM expenses WHERE expenseDate >= ?  and  expenseDate <= ? ";
+        return db.rawQuery(query, new String[]{fromDate, toDate});
+    }
+
+    public boolean restoreExpense(int expId, String expPart, int expAmt, String expCreatedDateTime, String expCreatedDate,
+                                  int expYesterdaysBalance, int expSales, int expBalance) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        long result = 0;
+        values.put(COLUMN_ID, expId);
+        values.put(COLUMN_PARTICULARS, expPart);
+        values.put(COLUMN_AMOUNT, expAmt);
+        values.put(COLUMN_DATETIME, expCreatedDateTime);
+        values.put(COLUMN_DATE, expCreatedDate);
+        values.put(COLUMN_YESTERDAYS_BALANCE, expYesterdaysBalance);
+        values.put(COLUMN_SALES, expSales);
+        values.put(COLUMN_BALANCE, expBalance);
+//        if (expId != 0) {
+//            result = db.update(TABLE_EXPENSES, values, "id=?", new String[]{String.valueOf(id)});
+//        } else {
+        result = db.insert(TABLE_EXPENSES, null, values);
+//        }
+        db.close();
+        return result != -1;
+
     }
 }
 

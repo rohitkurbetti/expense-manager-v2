@@ -2,6 +2,7 @@ package com.example.myapplication.constants;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class InvoiceConstants {
@@ -16,7 +17,11 @@ public class InvoiceConstants {
     public static final String EMPLOYER_NAME = "Gajanan Coldrink House";
     public static Map<String, Integer> ITEM_PRICE_MAP = new HashMap<>();
 
-
+    // Unmodifiable list of suggestions using List.of()
+    public static final List<String> SUGGESTIONS = List.of(
+            "Kokam Sarbat 1LT", "Kokam Sarbat 500ML", "Kokam Agal 1LT", "Kokam Agal 500ML", "Kokam Can",
+            "Orange Sarbat 1LT", "Ice cream"
+    );
 
     static {
 
@@ -81,6 +86,9 @@ public class InvoiceConstants {
     private static final int PISTA_RATE = 20;
     private static final int STRWBRY_RATE = 20;
     public static final String CLOUD_EXPORT_JSON_FILE_NAME = "invoices_export";
+    public static final String MONTHLY_REPORTS_EXPORT_FOLDER_PATH = "/Gajanan Coldrink House/Reports";
+    public static final String MONTHLY_SALES_REPORT_FILENAME = "Monthly_Sales_Report_";
+    public static final String PDF_EXTENSION = ".pdf";
 
 
 

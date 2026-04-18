@@ -1,0 +1,751 @@
+{
+  "categories": [
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "subCategories": [
+        {
+          "id": "smartphones",
+          "name": "Smartphones",
+          "subCategories": [
+            {
+              "id": "android_phones",
+              "name": "Android Phones",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-24",
+                  "items": [
+                    {
+                      "itemName": "Samsung Galaxy S24 Ultra",
+                      "itemBrand": "Samsung",
+                      "itemPrice": 1299.99,
+                      "purchaseDateTime": "2025-10-24T14:30:00",
+                      "imageUrl": "https://images.samsung.com/is/image/samsung/p6pim/in/2401/gallery/in-galaxy-s24-s928-sm-s928bzkcins-thumb-539226541",
+                      "description": "Flagship Android smartphone with S-Pen, 200MP camera, and Snapdragon 8 Gen 3 processor",
+                      "itemLinks": "https://www.samsung.com/in/smartphones/galaxy-s24-ultra/",
+                      "itemDoc": "https://downloadcenter.samsung.com/content/UM/202401/20240123143228524/IN_SM-S928_UM_EU_Eng_D_01_240116.pdf",
+                      "remarks": "Excellent camera performance, good battery life, S-Pen is very useful for notes"
+                    },
+                    {
+                      "itemName": "Google Pixel 8 Pro",
+                      "itemBrand": "Google",
+                      "itemPrice": 999.99,
+                      "purchaseDateTime": "2025-10-24T16:45:00",
+                      "imageUrl": "https://store.google.com/product/pixel_8_pro?hl=en-IN",
+                      "description": "Google's flagship with Tensor G3 chip, advanced AI features, and best-in-class camera software",
+                      "itemLinks": "https://store.google.com/in/product/pixel_8_pro",
+                      "itemDoc": "https://support.google.com/pixelphone/answer/13504136",
+                      "remarks": "Outstanding camera software, clean Android experience, AI features are impressive"
+                    }
+                  ]
+                },
+                {
+                  "date": "2025-10-20",
+                  "items": [
+                    {
+                      "itemName": "OnePlus 12",
+                      "itemBrand": "OnePlus",
+                      "itemPrice": 699.99,
+                      "purchaseDateTime": "2025-10-20T11:20:00",
+                      "imageUrl": "https://www.oneplus.in/12",
+                      "description": "Premium smartphone with Hasselblad camera, Snapdragon 8 Gen 3, and 100W fast charging",
+                      "itemLinks": "https://www.oneplus.in/12",
+                      "itemDoc": "https://www.oneplus.in/support/specifications/oneplus-12",
+                      "remarks": "Great value for money, fast charging is amazing, smooth performance"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "iphones",
+              "name": "iPhones",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-22",
+                  "items": [
+                    {
+                      "itemName": "iPhone 16 Pro Max",
+                      "itemBrand": "Apple",
+                      "itemPrice": 1599.99,
+                      "purchaseDateTime": "2025-10-22T10:15:00",
+                      "imageUrl": "https://www.apple.com/in/iphone-16-pro/",
+                      "description": "Apple's flagship with A18 Pro chip, titanium design, and advanced camera system",
+                      "itemLinks": "https://www.apple.com/in/iphone-16-pro/",
+                      "itemDoc": "https://support.apple.com/guide/iphone/welcome/ios",
+                      "remarks": "Premium build quality, excellent video recording, seamless ecosystem integration"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "laptops",
+          "name": "Laptops",
+          "subCategories": [
+            {
+              "id": "gaming_laptops",
+              "name": "Gaming Laptops",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-23",
+                  "items": [
+                    {
+                      "itemName": "ASUS ROG Strix SCAR 18",
+                      "itemBrand": "ASUS",
+                      "itemPrice": 2999.99,
+                      "purchaseDateTime": "2025-10-23T15:30:00",
+                      "imageUrl": "https://www.asus.com/in/laptops/for-gaming/rog-strix/rog-strix-scar-18-2024/",
+                      "description": "18-inch gaming laptop with Intel Core i9-14900HX, NVIDIA RTX 4090, and 32GB RAM",
+                      "itemLinks": "https://www.asus.com/in/laptops/for-gaming/rog-strix/rog-strix-scar-18-2024/",
+                      "itemDoc": "https://dlcdnets.asus.com/pub/ASUS/nb/202401150952153.pdf",
+                      "remarks": "Extreme gaming performance, excellent cooling system, premium build quality"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "business_laptops",
+              "name": "Business Laptops",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-21",
+                  "items": [
+                    {
+                      "itemName": "Dell XPS 13 Plus",
+                      "itemBrand": "Dell",
+                      "itemPrice": 1499.99,
+                      "purchaseDateTime": "2025-10-21T09:45:00",
+                      "imageUrl": "https://www.dell.com/en-in/shop/laptops/xps-13-plus/spd/xps-13-9320-laptop",
+                      "description": "Ultra-slim business laptop with Intel Evo platform, 13.4-inch OLED display, and premium design",
+                      "itemLinks": "https://www.dell.com/en-in/shop/laptops/xps-13-plus/spd/xps-13-9320-laptop",
+                      "itemDoc": "https://dl.dell.com/manuals/all-products/esuprt_electronics_accessories/esuprt_laptop/xps-13-9320-laptop_setup%20guide_en-in.pdf",
+                      "remarks": "Sleek design, excellent display, good for professional use"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tv_audio",
+          "name": "TV & Audio",
+          "subCategories": [
+            {
+              "id": "televisions",
+              "name": "Televisions",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-19",
+                  "items": [
+                    {
+                      "itemName": "Samsung 85-inch QLED 8K TV",
+                      "itemBrand": "Samsung",
+                      "itemPrice": 3999.99,
+                      "purchaseDateTime": "2025-10-19T14:20:00",
+                      "imageUrl": "https://www.samsung.com/in/tvs/qled-tv/85-q900b-8k-ultra-hd-smart-qled-tv-qa85q900bakxxl/",
+                      "description": "85-inch 8K QLED Smart TV with Quantum HDR, Object Tracking Sound, and Gaming Hub",
+                      "itemLinks": "https://www.samsung.com/in/tvs/qled-tv/85-q900b-8k-ultra-hd-smart-qled-tv-qa85q900bakxxl/",
+                      "itemDoc": "https://org.downloadcenter.samsung.com/downloadfile/ContentsFile.aspx?CDSite=IN&OriginYN=N&ModelType=N&ModelName=QA85Q900BAKXXL&VPath=FM/202404/20240415135704074/BN68-15033A-00Eng.pdf",
+                      "remarks": "Stunning picture quality, great for movies and gaming, smart features work smoothly"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "headphones",
+              "name": "Headphones",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-18",
+                  "items": [
+                    {
+                      "itemName": "Sony WH-1000XM5",
+                      "itemBrand": "Sony",
+                      "itemPrice": 349.99,
+                      "purchaseDateTime": "2025-10-18T11:30:00",
+                      "imageUrl": "https://www.sony.co.in/electronics/headband-headphones/wh-1000xm5",
+                      "description": "Wireless noise-canceling headphones with 30-hour battery life and HD voice quality",
+                      "itemLinks": "https://www.sony.co.in/electronics/headband-headphones/wh-1000xm5",
+                      "itemDoc": "https://www.sony.co.in/electronics/support/wireless-headphones-connectable-headphones/wh-1000xm5",
+                      "remarks": "Best-in-class noise cancellation, comfortable for long use, excellent sound quality"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fashion",
+      "name": "Fashion",
+      "subCategories": [
+        {
+          "id": "mens_fashion",
+          "name": "Men's Fashion",
+          "subCategories": [
+            {
+              "id": "mens_clothing",
+              "name": "Clothing",
+              "subCategories": [
+                {
+                  "id": "tshirts",
+                  "name": "T-Shirts",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-24",
+                      "items": [
+                        {
+                          "itemName": "Nike Dri-FIT Academy T-Shirt",
+                          "itemBrand": "Nike",
+                          "itemPrice": 29.99,
+                          "purchaseDateTime": "2025-10-24T13:15:00",
+                          "imageUrl": "https://static.nike.com/a/images/t_PDP_1728_v1/f_auto,q_auto:eco/b7d9211c-26e7-431a-ac19-b083cf699a61/dri-fit-academy-mens-t-shirt-9q7P7W.png",
+                          "description": "Men's regular fit training t-shirt made with Dri-FIT technology to keep you dry and comfortable",
+                          "itemLinks": "https://www.nike.com/in/t/dri-fit-academy-mens-t-shirt-9q7P7W",
+                          "itemDoc": "https://www.nike.com/in/help/a/product-care",
+                          "remarks": "Comfortable for workouts, good moisture-wicking, true to size"
+                        },
+                        {
+                          "itemName": "Adidas Essentials 3-Stripes T-Shirt",
+                          "itemBrand": "Adidas",
+                          "itemPrice": 24.99,
+                          "purchaseDateTime": "2025-10-24T15:45:00",
+                          "imageUrl": "https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/9042a1c75d8c4f8e8611af8c00fe9f25_9366/Essentials_3-Stripes_T-Shirt_White_HP9657_01_laydown.jpg",
+                          "description": "Classic cotton t-shirt with iconic 3-Stripes design, regular fit for everyday wear",
+                          "itemLinks": "https://www.adidas.co.in/essentials-3-stripes-t-shirt/HP9657.html",
+                          "itemDoc": "https://www.adidas.co.in/on/demandware.static/-/Sites-adidas-products/en_IN/dw0a1d8e9d/pdf/CM7709_01_standard.pdf",
+                          "remarks": "Soft cotton, good fit, classic design"
+                        }
+                      ]
+                    },
+                    {
+                      "date": "2025-10-22",
+                      "items": [
+                        {
+                          "itemName": "Puma Classic Logo T-Shirt",
+                          "itemBrand": "Puma",
+                          "itemPrice": 19.99,
+                          "purchaseDateTime": "2025-10-22T12:30:00",
+                          "imageUrl": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:f8f8f8,w_2000,h_2000/global/533192/01/fnd/IND/fmt/png/Classic-Logo-Men's-T-Shirt",
+                          "description": "Men's classic fit t-shirt with PUMA logo, made from 100% cotton for everyday comfort",
+                          "itemLinks": "https://in.puma.com/in/en/pd/classic-logo-mens-t-shirt/533192.html",
+                          "itemDoc": "https://in.puma.com/on/demandware.static/-/Sites-puma-in-Library/default/dw9d7e4a3c/SizeChart.pdf",
+                          "remarks": "Affordable, comfortable, good for casual wear"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "shirts",
+                  "name": "Shirts",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-21",
+                      "items": [
+                        {
+                          "itemName": "Van Heusen Formal Shirt",
+                          "itemBrand": "Van Heusen",
+                          "itemPrice": 59.99,
+                          "purchaseDateTime": "2025-10-21T16:20:00",
+                          "imageUrl": "https://images.vanheusen.com/medias/VMW03189-BLK.jpg?context=bWFzdGVyfHJvb3R8MTQ1NzYwfGltYWdlL2pwZWd8aDc0L2g0OC8xMDE1ODU0NTU5MTU1MC9WTUcwMzE4OS1CTEsuanBnfDgxMTQ0Y2U0NDQ3Y2Y4N2M0Y2Q3MmUxYzU2MzY3Y2QwMjE5YjU5ZTIzY2UyYjUyNzY1Y2Y4Y2Q3NTY1YjU",
+                          "description": "Men's formal shirt with slim fit, non-iron technology, perfect for office wear",
+                          "itemLinks": "https://www.vanheusen.in/men-formal-shirts/p/VMW03189",
+                          "itemDoc": "https://www.vanheusen.in/care-instructions",
+                          "remarks": "Professional look, easy to maintain, good fabric quality"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "jeans",
+                  "name": "Jeans",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-20",
+                      "items": [
+                        {
+                          "itemName": "Levi's 511 Slim Fit Jeans",
+                          "itemBrand": "Levi's",
+                          "itemPrice": 79.99,
+                          "purchaseDateTime": "2025-10-20T14:10:00",
+                          "imageUrl": "https://lsco.scene7.com/is/image/lsco/045111370-front-pdp?fmt=jpeg&qlt=70,1&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=2000&hei=2088",
+                          "description": "Men's slim fit jeans with stretch comfort, classic five-pocket design",
+                          "itemLinks": "https://www.levi.in/levis-511-slim-fit-jeans-men/p/045111370",
+                          "itemDoc": "https://www.levi.in/jeans-care",
+                          "remarks": "Perfect fit, comfortable stretch, durable quality"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "mens_footwear",
+              "name": "Footwear",
+              "subCategories": [
+                {
+                  "id": "casual_shoes",
+                  "name": "Casual Shoes",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-24",
+                      "items": [
+                        {
+                          "itemName": "Nike Air Force 1 '07",
+                          "itemBrand": "Nike",
+                          "itemPrice": 109.99,
+                          "purchaseDateTime": "2025-10-24T17:30:00",
+                          "imageUrl": "https://static.nike.com/a/images/t_PDP_1728_v1/f_auto,q_auto:eco/b7d9211c-26e7-431a-ac19-b083cf699a61/air-force-1-07-mens-shoes-jBrhbr.png",
+                          "description": "Classic white leather sneakers with durable construction and timeless style",
+                          "itemLinks": "https://www.nike.com/in/t/air-force-1-07-mens-shoes-jBrhbr",
+                          "itemDoc": "https://www.nike.com/in/a/how-to-clean-air-force-1",
+                          "remarks": "Classic design, comfortable, goes with everything"
+                        },
+                        {
+                          "itemName": "Adidas Stan Smith",
+                          "itemBrand": "Adidas",
+                          "itemPrice": 89.99,
+                          "purchaseDateTime": "2025-10-24T18:15:00",
+                          "imageUrl": "https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/2b9991a492e34e0b8f3baf8c00fe9f25_9366/Stan_Smith_Shoes_White_M20607_01_standard.jpg",
+                          "description": "Iconic leather sneakers with clean design and comfortable fit",
+                          "itemLinks": "https://www.adidas.co.in/stan-smith-shoes/M20607.html",
+                          "itemDoc": "https://www.adidas.co.in/on/demandware.static/-/Sites-adidas-products/en_IN/dw9c9c9c9c/pdf/UG_M20607.pdf",
+                          "remarks": "Timeless design, comfortable for all-day wear"
+                        }
+                      ]
+                    },
+                    {
+                      "date": "2025-10-23",
+                      "items": [
+                        {
+                          "itemName": "Converse Chuck Taylor All Star",
+                          "itemBrand": "Converse",
+                          "itemPrice": 65.99,
+                          "purchaseDateTime": "2025-10-23T13:45:00",
+                          "imageUrl": "https://images.converse.com/in/imagestudio/2023/CHUCK_70_HERO_UPDATE.jpg",
+                          "description": "Classic canvas sneakers with iconic star ankle patch and durable rubber sole",
+                          "itemLinks": "https://www.converse.in/chuck-taylor-all-star",
+                          "itemDoc": "https://www.converse.in/care-instructions",
+                          "remarks": "Classic style, comfortable, true to size"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sports_shoes",
+                  "name": "Sports Shoes",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-22",
+                      "items": [
+                        {
+                          "itemName": "Nike Air Zoom Pegasus 39",
+                          "itemBrand": "Nike",
+                          "itemPrice": 119.99,
+                          "purchaseDateTime": "2025-10-22T15:20:00",
+                          "imageUrl": "https://static.nike.com/a/images/t_PDP_1728_v1/f_auto,q_auto:eco/4d56d0f5-821f-4b12-8e0a-7e4f5c5c5c5c/air-zoom-pegasus-39-mens-running-shoes-l417Gz.png",
+                          "description": "Men's running shoes with responsive cushioning and breathable mesh upper",
+                          "itemLinks": "https://www.nike.com/in/t/air-zoom-pegasus-39-mens-running-shoes-l417Gz",
+                          "itemDoc": "https://www.nike.com/in/a/running-shoe-fit-guide",
+                          "remarks": "Great for running, comfortable cushioning, good support"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "formal_shoes",
+                  "name": "Formal Shoes",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-21",
+                      "items": [
+                        {
+                          "itemName": "Clarks Derby Leather Shoes",
+                          "itemBrand": "Clarks",
+                          "itemPrice": 129.99,
+                          "purchaseDateTime": "2025-10-21T11:30:00",
+                          "imageUrl": "https://images.clarks.com/medias/26175847-W.jpg?context=bWFzdGVyfHJvb3R8MTI1NjYwfGltYWdlL2pwZWd8aDc0L2g0OC8xMDE1ODU0NTU5MTU1MC8yNjE3NTgyNy1XLmpwZ3w4MTE0NGNlNDQ0N2NmODdjNGNkNzJlMWM1NjM2N2NkMDIxOWI1OWUyM2NlMmI1Mjc2NWNmOGNkNzU2NWI1",
+                          "description": "Men's leather derby shoes with cushioned comfort and durable construction",
+                          "itemLinks": "https://www.clarks.in/derby-leather-shoes/p/26175847",
+                          "itemDoc": "https://www.clarks.in/leather-care",
+                          "remarks": "Professional look, comfortable for office wear, good quality leather"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "womens_fashion",
+          "name": "Women's Fashion",
+          "subCategories": [
+            {
+              "id": "womens_clothing",
+              "name": "Clothing",
+              "subCategories": [
+                {
+                  "id": "dresses",
+                  "name": "Dresses",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-23",
+                      "items": [
+                        {
+                          "itemName": "Zara Floral Print Midi Dress",
+                          "itemBrand": "Zara",
+                          "itemPrice": 45.99,
+                          "purchaseDateTime": "2025-10-23T14:25:00",
+                          "imageUrl": "https://static.zara.net/photos///2024/I/0/1/p/1234/123/123/2/w/1920/1234123123_1_1_1.jpg?ts=1234567890123",
+                          "description": "Women's floral print midi dress with ruffled sleeves and comfortable fit",
+                          "itemLinks": "https://www.zara.com/in/en/floral-print-midi-dress-p1234123123.html",
+                          "itemDoc": "https://www.zara.com/in/en/care-instructions",
+                          "remarks": "Beautiful design, comfortable fabric, perfect for summer"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "tops",
+                  "name": "Tops & Tees",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-22",
+                      "items": [
+                        {
+                          "itemName": "H&M Basic Cotton T-Shirt",
+                          "itemBrand": "H&M",
+                          "itemPrice": 14.99,
+                          "purchaseDateTime": "2025-10-22T16:40:00",
+                          "imageUrl": "https://hm.com/in/productpage.123456789.html",
+                          "description": "Women's basic cotton t-shirt with regular fit, available in multiple colors",
+                          "itemLinks": "https://www2.hm.com/en_in/productpage.123456789.html",
+                          "itemDoc": "https://www2.hm.com/en_in/customer-service/product-care.html",
+                          "remarks": "Soft cotton, good fit, affordable price"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "womens_footwear",
+              "name": "Footwear",
+              "subCategories": [
+                {
+                  "id": "heels",
+                  "name": "Heels",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-21",
+                      "items": [
+                        {
+                          "itemName": "Steve Madden Block Heel Sandals",
+                          "itemBrand": "Steve Madden",
+                          "itemPrice": 79.99,
+                          "purchaseDateTime": "2025-10-21T13:15:00",
+                          "imageUrl": "https://stevemadden.in/cdn/shop/files/block-heel-sandals.jpg",
+                          "description": "Women's block heel sandals with comfortable height and stylish design",
+                          "itemLinks": "https://stevemadden.in/products/block-heel-sandals",
+                          "itemDoc": "https://stevemadden.in/pages/shoe-care",
+                          "remarks": "Comfortable for heels, stylish design, good for parties"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "flats",
+                  "name": "Flats",
+                  "subCategories": [],
+                  "dates": [
+                    {
+                      "date": "2025-10-20",
+                      "items": [
+                        {
+                          "itemName": "Skechers Go Walk Joy",
+                          "itemBrand": "Skechers",
+                          "itemPrice": 59.99,
+                          "purchaseDateTime": "2025-10-20T12:20:00",
+                          "imageUrl": "https://images.skechers.com/image/upload/f_auto,q_auto,fl_lossy,c_fill,w_2000,h_2000/global/123456/01/fnd/IND/fmt/png/go-walk-joy-womens-shoes",
+                          "description": "Women's comfortable walking shoes with 5GEN cushioning and lightweight design",
+                          "itemLinks": "https://www.skechers.in/women/shoes/comfort/123456.html",
+                          "itemDoc": "https://www.skechers.in/footwear-care",
+                          "remarks": "Extremely comfortable, lightweight, perfect for walking"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home_kitchen",
+      "name": "Home & Kitchen",
+      "subCategories": [
+        {
+          "id": "furniture",
+          "name": "Furniture",
+          "subCategories": [
+            {
+              "id": "sofas",
+              "name": "Sofas",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-19",
+                  "items": [
+                    {
+                      "itemName": "IKEA EKTORP 3-Seater Sofa",
+                      "itemBrand": "IKEA",
+                      "itemPrice": 499.99,
+                      "purchaseDateTime": "2025-10-19T10:30:00",
+                      "imageUrl": "https://www.ikea.com/in/en/images/products/ektorp-3-seat-sofa__0788165_pe763734_s5.jpg",
+                      "description": "3-seater sofa with removable covers, comfortable cushions, and timeless design",
+                      "itemLinks": "https://www.ikea.com/in/en/p/ektorp-3-seat-sofa-19321530/",
+                      "itemDoc": "https://www.ikea.com/in/en/assembly_instructions/ektorp-3-seat-sofa__AA-1005128-2-10.pdf",
+                      "remarks": "Comfortable, easy to clean, good value for money"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "beds",
+              "name": "Beds",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-18",
+                  "items": [
+                    {
+                      "itemName": "Wakefit Orthopedic Memory Foam Mattress",
+                      "itemBrand": "Wakefit",
+                      "itemPrice": 299.99,
+                      "purchaseDateTime": "2025-10-18T14:45:00",
+                      "imageUrl": "https://wakefit.co/cdn/shop/files/orthopedic-memory-foam-mattress.jpg",
+                      "description": "Queen size orthopedic memory foam mattress with advanced support and comfort layers",
+                      "itemLinks": "https://wakefit.co/product/orthopedic-memory-foam-mattress",
+                      "itemDoc": "https://wakefit.co/mattress-care-guide",
+                      "remarks": "Excellent back support, comfortable sleep, good quality"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "kitchen_appliances",
+          "name": "Kitchen Appliances",
+          "subCategories": [
+            {
+              "id": "mixer_grinders",
+              "name": "Mixer Grinders",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-17",
+                  "items": [
+                    {
+                      "itemName": "Preethi Zodiac MG-218 Mixer Grinder",
+                      "itemBrand": "Preethi",
+                      "itemPrice": 89.99,
+                      "purchaseDateTime": "2025-10-17T11:20:00",
+                      "imageUrl": "https://preethi.in/cdn/shop/files/zodiac-mg-218.jpg",
+                      "description": "750W mixer grinder with 3 jars, 5-year warranty, and advanced motor technology",
+                      "itemLinks": "https://preethi.in/products/zodiac-mg-218",
+                      "itemDoc": "https://preethi.in/pages/user-manual",
+                      "remarks": "Powerful motor, efficient grinding, durable jars"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "air_fryers",
+              "name": "Air Fryers",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-16",
+                  "items": [
+                    {
+                      "itemName": "Philips HD9252/90 Air Fryer",
+                      "itemBrand": "Philips",
+                      "itemPrice": 129.99,
+                      "purchaseDateTime": "2025-10-16T15:30:00",
+                      "imageUrl": "https://www.philips.co.in/c-dam/b2c/category-pages/kitchen/airfryer/hd9252-90-airfryer.png",
+                      "description": "4.1L digital air fryer with fat removal technology and 7 preset programs",
+                      "itemLinks": "https://www.philips.co.in/c-p/HD9252_90/airfryer",
+                      "itemDoc": "https://www.philips.co.in/c-p/HD9252_90/airfryer/support",
+                      "remarks": "Healthy cooking, easy to use, good capacity for family"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beauty_personal_care",
+      "name": "Beauty & Personal Care",
+      "subCategories": [
+        {
+          "id": "skincare",
+          "name": "Skincare",
+          "subCategories": [
+            {
+              "id": "face_washes",
+              "name": "Face Washes",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-24",
+                  "items": [
+                    {
+                      "itemName": "Cetaphil Gentle Skin Cleanser",
+                      "itemBrand": "Cetaphil",
+                      "itemPrice": 14.99,
+                      "purchaseDateTime": "2025-10-24T12:15:00",
+                      "imageUrl": "https://www.cetaphil.in/cdn/shop/files/gentle-skin-cleanser.jpg",
+                      "description": "Gentle daily face cleanser for all skin types, non-comedogenic and fragrance-free",
+                      "itemLinks": "https://www.cetaphil.in/products/gentle-skin-cleanser",
+                      "itemDoc": "https://www.cetaphil.in/pages/skincare-guide",
+                      "remarks": "Gentle on skin, doesn't cause irritation, good for sensitive skin"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "moisturizers",
+              "name": "Moisturizers",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-23",
+                  "items": [
+                    {
+                      "itemName": "Neutrogena Hydro Boost Water Gel",
+                      "itemBrand": "Neutrogena",
+                      "itemPrice": 19.99,
+                      "purchaseDateTime": "2025-10-23T10:45:00",
+                      "imageUrl": "https://www.neutrogena.in/cdn/shop/files/hydro-boost-water-gel.jpg",
+                      "description": "Oil-free water gel moisturizer with hyaluronic acid for 48-hour hydration",
+                      "itemLinks": "https://www.neutrogena.in/products/hydro-boost-water-gel",
+                      "itemDoc": "https://www.neutrogena.in/pages/skincare-tips",
+                      "remarks": "Lightweight, non-greasy, provides good hydration"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "haircare",
+          "name": "Haircare",
+          "subCategories": [
+            {
+              "id": "shampoos",
+              "name": "Shampoos",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-22",
+                  "items": [
+                    {
+                      "itemName": "L'Oreal Paris Hyaluron Moisture Shampoo",
+                      "itemBrand": "L'Oreal",
+                      "itemPrice": 12.99,
+                      "purchaseDateTime": "2025-10-22T14:20:00",
+                      "imageUrl": "https://www.lorealparis.in/cdn/shop/files/hyaluron-moisture-shampoo.jpg",
+                      "description": "Hydrating shampoo with hyaluronic acid for 72-hour moisture and shine",
+                      "itemLinks": "https://www.lorealparis.in/products/hyaluron-moisture-shampoo",
+                      "itemDoc": "https://www.lorealparis.in/pages/hair-care-guide",
+                      "remarks": "Leaves hair soft and shiny, good for dry hair"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sports_fitness",
+      "name": "Sports & Fitness",
+      "subCategories": [
+        {
+          "id": "fitness_equipment",
+          "name": "Fitness Equipment",
+          "subCategories": [
+            {
+              "id": "yoga_mats",
+              "name": "Yoga Mats",
+              "subCategories": [],
+              "dates": [
+                {
+                  "date": "2025-10-21",
+                  "items": [
+                    {
+                      "itemName": "AmazonBasics Extra Thick Yoga Mat",
+                      "itemBrand": "AmazonBasics",
+                      "itemPrice": 24.99,
+                      "purchaseDateTime": "2025-10-21T16:30:00",
+                      "imageUrl": "https://m.media-amazon.com/images/I/71Y4dGWZk4L._SL1500_.jpg",
+                      "description": "1/2 inch thick exercise yoga mat with double-sided non-slip surface",
+                      "itemLinks": "https://www.amazon.in/AmazonBasics-Extra-Thick-Exercise-Yoga-Mat/dp/B00XQR9C8Y",
+                      "itemDoc": "https://www.amazon.in/gp/help/customer/display.html?nodeId=201889700",
+                      "remarks": "Good thickness, non-slip, comfortable for yoga"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

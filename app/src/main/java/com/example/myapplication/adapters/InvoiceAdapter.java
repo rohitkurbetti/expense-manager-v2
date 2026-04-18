@@ -10,6 +10,7 @@ import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -17,7 +18,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.BaseAdapter;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
@@ -38,21 +38,21 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
-
 import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class InvoiceAdapter extends BaseAdapter {
+    private final LinearLayout selectionOverlay;
     private Context context;
     private List<Invoice> invoiceList;
     private LayoutInflater inflater;
-    private final LinearLayout selectionOverlay;
-    private Set<String> expDates;
+    private Set<String> expDates = new HashSet<>();
 
     public InvoiceAdapter(Context context, List<Invoice> invoiceList, LinearLayout selectionOverlay) {
         this.context = context;
@@ -129,7 +129,7 @@ public class InvoiceAdapter extends BaseAdapter {
 
 
         });
-        txtInvoiceId.setTextColor(context.getColor(R.color.blueAccent));
+//        txtInvoiceId.setTextColor(context.getColor(R.color.blueAccent));
         txtInvoiceId.setOnClickListener(v -> invoiceDetails(itemSaleMap));
 
         checkBoxInvoiceId.setChecked(invoice.getChecked());
@@ -153,21 +153,21 @@ public class InvoiceAdapter extends BaseAdapter {
 
                     long checkedCInvoicesCount = invoiceList.stream().filter(Invoice::getChecked).count();
 
-                    if(checkedCInvoicesCount < 1 || checkedCInvoicesCount == invoiceList.size()) {
+                    if (checkedCInvoicesCount < 1 || checkedCInvoicesCount == invoiceList.size()) {
 
 
-                    List<Invoice> checkedList = invoiceList.stream().map(inv -> {
-                        inv.setChecked(false);
-                        return inv;
-                    }).collect(Collectors.toList());
+                        List<Invoice> checkedList = invoiceList.stream().map(inv -> {
+                            inv.setChecked(false);
+                            return inv;
+                        }).collect(Collectors.toList());
 
-                    invoiceList.clear();
-                    invoiceList = checkedList;
-                    selectionOverlay.setVisibility(View.GONE);
-                    notifyDataSetChanged();
+                        invoiceList.clear();
+                        invoiceList = checkedList;
+                        selectionOverlay.setVisibility(View.GONE);
+                        notifyDataSetChanged();
                     }
 
-                    if(checkedCInvoicesCount < invoiceList.size()) {
+                    if (checkedCInvoicesCount < invoiceList.size()) {
                         selAllInvCheckBox.setChecked(false);
                     }
                 }
@@ -196,7 +196,7 @@ public class InvoiceAdapter extends BaseAdapter {
             long checkedCInvoicesCount = invoiceList.stream().filter(Invoice::getChecked).count();
             InvoicesFragment.itemSelectedTxt.setText(checkedCInvoicesCount + " Items selected");
 
-            if(checkedCInvoicesCount <invoiceList.size()) {
+            if (checkedCInvoicesCount < invoiceList.size()) {
                 selAllInvCheckBox.setChecked(false);
             } else {
                 selAllInvCheckBox.setChecked(true);

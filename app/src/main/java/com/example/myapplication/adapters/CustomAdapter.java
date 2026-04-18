@@ -114,7 +114,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
 
                             } else {
                                 Toast.makeText(context, "Invalid range for [" + itemName + "] ", Toast.LENGTH_SHORT).show();
-                                holder.slider.setValueTo((float) 30 / 100);
+                                holder.slider.setValueTo((float) 50 / 100);
 
                             }
 
@@ -127,8 +127,8 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
                 builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        etSliderQty.setText(String.valueOf(30));
-                        holder.slider.setValueTo((float) 30 / 100);
+                        etSliderQty.setText(String.valueOf(50));
+                        holder.slider.setValueTo((float) 50 / 100);
                         dialog.dismiss();
                     }
                 });
@@ -187,21 +187,21 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
         });
 
 
-        boolean enableMinus = sharedPreferences.getBoolean("enableMinus", false);
+        boolean enableMinus = sharedPreferences.getBoolean("enableMinus", true);
         if (!enableMinus) {
             holder.minusAQtyBtn.setVisibility(View.GONE);
         } else {
             holder.minusAQtyBtn.setVisibility(View.VISIBLE);
             holder.minusAQtyBtn.setOnClickListener(v -> {
                 float v1 = (holder.slider.getValue()) - 0.01f;
-                if (v1 > 0.0f && v1 <= 0.3f) {
+                if (v1 > 0.0f && v1 <= 0.5f) {
                     item.setSliderValue((int) (v1 * 100));
                     holder.slider.setValue(v1);
                 }
             });
         }
 
-        boolean showSliderVal = sharedPreferences.getBoolean("showSlider", false);
+        boolean showSliderVal = sharedPreferences.getBoolean("showSlider", true);
         if (!showSliderVal) {
             holder.slider.setVisibility(View.GONE);
         } else {

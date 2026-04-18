@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="E-commerce Categories"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"
+        android:textColor="#1a237e" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnExpandAll"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".5"
+                android:layout_marginEnd="4dp"
+                android:text="Expand All"
+                android:textColor="@color/bluePrimary"
+                android:backgroundTint="#1a237e"
+                 />
+
+            <Button
+                android:id="@+id/btnCollapseAll"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".5"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:text="Collapse All"
+                android:backgroundTint="#f44336"
+                 />
+
+            <Button
+                android:visibility="gone"
+                android:id="@+id/btnShowSelected"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".5"
+                android:layout_marginStart="4dp"
+                android:text="Show Selected"
+                android:backgroundTint="#4CAF50"
+                 />
+
+            <Button
+                android:id="@+id/btnAddItem"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="➕ Add Item"
+                android:layout_weight=".1"
+                android:layout_margin="8dp"
+                android:backgroundTint="#FF9800"
+                
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnResetData"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔄 Reset"
+                android:layout_margin="8dp"
+                android:backgroundTint="#9C27B0"
+                
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnAddCategory"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📁 Add Category"
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="#673AB7"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+
+    <ListView
+        android:id="@+id/listViewC"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@null"
+        android:dividerHeight="0dp" />
+
+</LinearLayout>

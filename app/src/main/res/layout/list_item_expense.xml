@@ -28,6 +28,7 @@
             android:layout_height="wrap_content">
 
             <TextView
+                android:textColor="?android:colorAccent"
                 android:id="@+id/txtExpenseId"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -82,6 +83,7 @@
                 android:id="@+id/txtExpBalance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textStyle="bold"
                 android:text="Balance"
                 android:textSize="12sp"/>
 

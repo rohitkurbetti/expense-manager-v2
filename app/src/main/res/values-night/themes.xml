@@ -15,5 +15,6 @@
         <item name="android:textColorPrimary">@android:color/white</item>
         <!-- Text color for secondary content -->
         <item name="android:textColorSecondary">@android:color/white</item>
+
     </style>
 </resources>

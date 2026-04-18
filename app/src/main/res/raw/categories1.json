@@ -1,0 +1,172 @@
+{
+  "categories": [
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "subCategories": [
+        {
+          "id": "smartphones",
+          "name": "Smartphones",
+          "subCategories": [
+            {
+              "id": "android",
+              "name": "Android Phones",
+              "subCategories": []
+            },
+            {
+              "id": "iphones",
+              "name": "iPhones",
+              "subCategories": []
+            },
+            {
+              "id": "basic_phones",
+              "name": "Basic Phones",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": "laptops",
+          "name": "Laptops",
+          "subCategories": [
+            {
+              "id": "gaming_laptops",
+              "name": "Gaming Laptops",
+              "subCategories": []
+            },
+            {
+              "id": "ultrabooks",
+              "name": "Ultrabooks",
+              "subCategories": []
+            },
+            {
+              "id": "business_laptops",
+              "name": "Business Laptops",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": "tv_audio",
+          "name": "TV & Audio",
+          "subCategories": [
+            {
+              "id": "televisions",
+              "name": "Televisions",
+              "subCategories": [
+                {
+                  "id": "smart_tv",
+                  "name": "Smart TVs",
+                  "subCategories": []
+                },
+                {
+                  "id": "4k_tv",
+                  "name": "4K Ultra HD",
+                  "subCategories": []
+                }
+              ]
+            },
+            {
+              "id": "audio",
+              "name": "Audio",
+              "subCategories": [
+                {
+                  "id": "headphones",
+                  "name": "Headphones",
+                  "subCategories": []
+                },
+                {
+                  "id": "speakers",
+                  "name": "Speakers",
+                  "subCategories": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fashion",
+      "name": "Fashion",
+      "subCategories": [
+        {
+          "id": "mens_fashion",
+          "name": "Men's Fashion",
+          "subCategories": [
+            {
+              "id": "mens_clothing",
+              "name": "Clothing",
+              "subCategories": [
+                {
+                  "id": "tshirts",
+                  "name": "T-Shirts",
+                  "subCategories": []
+                },
+                {
+                  "id": "shirts",
+                  "name": "Shirts",
+                  "subCategories": []
+                }
+              ]
+            },
+            {
+              "id": "mens_footwear",
+              "name": "Footwear",
+              "subCategories": [
+                {
+                  "id": "casual_shoes",
+                  "name": "Casual Shoes",
+                  "subCategories": []
+                },
+                {
+                  "id": "sports_shoes",
+                  "name": "Sports Shoes",
+                  "subCategories": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "womens_fashion",
+          "name": "Women's Fashion",
+          "subCategories": [
+            {
+              "id": "womens_clothing",
+              "name": "Clothing",
+              "subCategories": [
+                {
+                  "id": "dresses",
+                  "name": "Dresses",
+                  "subCategories": []
+                },
+                {
+                  "id": "tops",
+                  "name": "Tops & Tees",
+                  "subCategories": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home_kitchen",
+      "name": "Home & Kitchen",
+      "subCategories": [
+        {
+          "id": "furniture",
+          "name": "Furniture",
+          "subCategories": []
+        },
+        {
+          "id": "kitchen_appliances",
+          "name": "Kitchen Appliances",
+          "subCategories": []
+        }
+      ]
+    }
+  ]
+}

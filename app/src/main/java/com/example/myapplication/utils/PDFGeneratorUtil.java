@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -49,13 +51,17 @@ public class PDFGeneratorUtil {
         try {
             String pdfPathMain = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
 
-            String pdfPath = pdfPathMain + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "invoices";
+            String pdfPath = pdfPathMain + File.separator + InvoiceConstants.EMPLOYER_NAME
+                    + File.separator + "invoices" + File.separator + DateTimeFormatter.ofPattern("yyyy-MM-dd").format(LocalDate.parse(dtoJson.getDate()));
 
             if (!Files.exists(Paths.get(pdfPath))) {
                 new File(pdfPath).mkdirs();
             }
-
-            LocalDateTime localDateTime = LocalDateTime.now();
+            LocalDateTime localDateTime = null;
+            if(!LocalDate.now().equals(LocalDate.parse(dtoJson.getDate())))
+                localDateTime = LocalDate.parse(dtoJson.getDate()).atTime(LocalTime.now());
+            else
+                localDateTime = LocalDateTime.now();
             String frmtted = localDateTime.format(DateTimeFormatter.ofPattern("ddMMMyy_HHmmss"));
 
             pdfFile = new File(pdfPath, "invoice_" + newRowId + "_" + frmtted + ".pdf");

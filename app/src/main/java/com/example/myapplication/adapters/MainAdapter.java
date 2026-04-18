@@ -1,5 +1,7 @@
 package com.example.myapplication.adapters;
 
+import static com.example.myapplication.constants.InvoiceConstants.*;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -26,7 +28,6 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.myapplication.CloudSummary;
 import com.example.myapplication.R;
 import com.example.myapplication.adapterholders.CustomItem;
 import com.example.myapplication.constants.InvoiceConstants;
@@ -36,20 +37,19 @@ import com.example.myapplication.dtos.Month;
 import com.example.myapplication.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder> {
 
@@ -329,8 +329,18 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
         canvas.drawLine(leftMargin, currentY, pageWidth - rightMargin, currentY, paint);
         currentY += 20;
 
+        Map<String, Integer> sortedMap = mainItemList.entrySet()
+                .stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new
+                ));
+
         // Table rows
-        for (Map.Entry<String, Integer> entry : mainItemList.entrySet()) {
+        for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
             String product = entry.getKey();
             Integer quantity = entry.getValue();
 
@@ -373,13 +383,13 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MainViewHolder
         pdfDocument.finishPage(currentPage);
 
         // Save PDF to external storage
-        File folder = new File(Environment.getExternalStorageDirectory()+"/"+Environment.DIRECTORY_DOCUMENTS + "/Gajanan Coldrink House/Reports");
+        File folder = new File(Environment.getExternalStorageDirectory()+"/"+Environment.DIRECTORY_DOCUMENTS + MONTHLY_REPORTS_EXPORT_FOLDER_PATH);
 
         if(!folder.exists()) {
             folder.mkdirs();
         }
 
-        File pdfFile = new File(folder, "Monthly_Sales_Report_"+monthName+System.currentTimeMillis()+".pdf");
+        File pdfFile = new File(folder, MONTHLY_SALES_REPORT_FILENAME + monthName+System.currentTimeMillis() + PDF_EXTENSION);
         try {
             pdfDocument.writeTo(new FileOutputStream(pdfFile));
         } catch (IOException e) {

@@ -3,6 +3,11 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <color name="colorSurface">#FFFBFE</color>
+    <color name="colorOnSurface">#1C1B1F</color>
+    <color name="colorSurfaceContainer">#F3EDF7</color>
+    <color name="light_gray">#F5F5F5</color>
+
 
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
@@ -23,6 +28,22 @@
     <color name="grid_button_background">#EEEEEE</color>
     <color name="main_button_light_bg">#EEEEEE</color>
     <color name="main_button_light_bg_pressed">#DDDDDD</color>
+
+    <color name="primary_color">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+
+    <color name="background_gray">#F5F5F5</color>
+    <color name="card_background_start">#FFFFFF</color>
+    <color name="card_background_end">#F8F9FA</color>
+
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+    <color name="divider_gray">#E0E0E0</color>
+
+    <color name="profit_green">#4CAF50</color>
+    <color name="loss_red">#F44336</color>
+    <color name="sales_blue">#2196F3</color>
+    <color name="expense_orange">#FF9800</color>
 
 
     <style name="QuantityGridButton" parent="Widget.AppCompat.Button.Borderless">

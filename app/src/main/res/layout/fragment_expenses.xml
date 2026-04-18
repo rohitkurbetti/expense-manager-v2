@@ -7,6 +7,19 @@
     android:orientation="vertical">
 
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:background="@drawable/card_background"
+        android:padding="12dp"
+        android:elevation="6dp">
+
+
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
@@ -71,17 +84,21 @@
 
     </LinearLayout>
 
+
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_marginHorizontal="8dp"
         android:layout_marginTop="8dp"
         android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:padding="12dp"
+        android:elevation="6dp">
 
         <TextView
             android:layout_weight="1"
             android:id="@+id/totalRecordsTextViewFragExp"
             android:layout_width="0dp"
+            android:textStyle="bold"
             android:layout_height="wrap_content"
             android:text="Total records: "
             />
@@ -90,10 +107,14 @@
             android:id="@+id/totalAmountTextViewFragExp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textStyle="bold"
             android:text="Total: "
             />
 
     </LinearLayout>
+
+    </LinearLayout>
+
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"

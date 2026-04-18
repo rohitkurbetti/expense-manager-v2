@@ -81,7 +81,7 @@ public class ExpenseAdapter extends BaseAdapter {
             expenseDetailsLayout.setVisibility(View.GONE);
         }
 
-        txtExpenseId.setText("Expense ID: " + expense.getId());
+        txtExpenseId.setText("Expense " + expense.getId());
 
         String expPartJson = expense.getExpensePart();
 
@@ -94,10 +94,10 @@ public class ExpenseAdapter extends BaseAdapter {
         }
 
 
-        txtExpAmount.setText("Total expenses: \u20B9" + expense.getExpenseAmount());
-        txtExpCreatedDateTime.setText("Created: " + expense.getExpenseDateTime());
-        txtSales.setText("Sales: \u20B9" + expense.getSales());
-        txtExpBalance.setText("Balance: \u20B9" + expense.getBalance());
+        txtExpAmount.setText("Total \u20B9" + expense.getExpenseAmount());
+        txtExpCreatedDateTime.setText("Date " + expense.getExpenseDate());
+//        txtSales.setText("Sales \u20B9" + expense.getSales());
+        txtExpBalance.setText("Balance \u20B9" + expense.getBalance());
 
 
 //        expDetailsBtn.setOnClickListener(v -> expenseDetails(itemSaleMap));

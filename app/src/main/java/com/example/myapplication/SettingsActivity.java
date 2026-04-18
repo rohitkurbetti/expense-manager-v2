@@ -15,19 +15,14 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class SettingsActivity extends AppCompatActivity {
-    private Spinner periodSpinner;
+public class SettingsActivity extends BaseActivity {
+    private Spinner periodSpinner, fontSpinner;
     private EditText invoiceFragmentLoadingDelay;
-    private Switch enableMinusBtn,showSlider,enablePrettyPrintExport,enableCloudExport;
+    private Switch enableMinusBtn, showSlider, enablePrettyPrintExport, enableCloudExport;
     private SharedPreferences prefs;
 
     @Override
@@ -37,6 +32,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefs = getSharedPreferences(MainActivity.SHARED_PREFS_FILE, MODE_PRIVATE);
 
         periodSpinner = findViewById(R.id.periodSpinner);
+        fontSpinner = findViewById(R.id.fontSpinner);
         enableMinusBtn = findViewById(R.id.enableMinusBtn);
         showSlider = findViewById(R.id.showSlider);
         invoiceFragmentLoadingDelay = findViewById(R.id.invoiceFragmentLoadingDelay);
@@ -99,20 +95,65 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
+        // Font Spinner Setup
+        String[] fonts = {"Poppins", "Nunito", "Roboto", "FontFamily", "Noticia"};
+        ArrayAdapter<String> fontAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fonts);
+        fontAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        fontSpinner.setAdapter(fontAdapter);
+
+        String currentFont = prefs.getString("app_font", "Poppins");
+        int fontPosition = fontAdapter.getPosition(currentFont);
+        if (fontPosition >= 0) {
+            fontSpinner.setSelection(fontPosition);
+        }
+
+        fontSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selectedFont = parent.getItemAtPosition(position).toString();
+
+                // Always update preferences to reflect current selection
+                String savedFont = prefs.getString("app_font", "Poppins");
+                if (!selectedFont.equals(savedFont)) {
+                    prefs.edit().putString("app_font", selectedFont).apply();
+                }
+
+                // Only prompt for restart if the selected font differs from the currently applied font
+                if (!selectedFont.equals(currentFont)) {
+                    // Show refresh dialog for font change
+                    new AlertDialog.Builder(SettingsActivity.this)
+                            .setTitle("Restart Required")
+                            .setMessage("Font changes require a restart to take full effect. Restart now?")
+                            .setPositiveButton("Restart", (dialog, which) -> {
+                                Intent intent = new Intent(SettingsActivity.this, MainActivity.class);
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(intent);
+                                finish();
+                            })
+                            .setNegativeButton("Later", null)
+                            .show();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
 
         boolean enableMinus = prefs.getBoolean("enableMinus", true);
         enableMinusBtn.setChecked(enableMinus);
 
         boolean enableCloudExportVal = prefs.getBoolean("enableCloudExport", false);
 
-        if(enableCloudExportVal) {
+        if (enableCloudExportVal) {
             enableCloudExport.setChecked(enableCloudExportVal);
             enablePrettyPrintExport.setVisibility(View.VISIBLE);
         }
 
 
         enableCloudExport.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if(isChecked) {
+            if (isChecked) {
                 prefs.edit().putBoolean("enableCloudExport", true).apply();
                 enablePrettyPrintExport.setVisibility(View.VISIBLE);
             } else {
@@ -124,7 +165,7 @@ public class SettingsActivity extends AppCompatActivity {
         enableMinusBtn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
+                if (isChecked) {
                     prefs.edit().putBoolean("enableMinus", true).apply();
                 } else {
                     prefs.edit().putBoolean("enableMinus", false).apply();
@@ -154,7 +195,7 @@ public class SettingsActivity extends AppCompatActivity {
         enablePrettyPrintExport.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
+                if (isChecked) {
                     prefs.edit().putBoolean("enablePrettyPrintExport", true).apply();
                 } else {
                     prefs.edit().putBoolean("enablePrettyPrintExport", false).apply();
@@ -178,21 +219,19 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 String loadingDelay = invoiceFragmentLoadingDelay.getText().toString();
-                if(StringUtils.isNotEmpty(loadingDelay)) {
+                if (StringUtils.isNotEmpty(loadingDelay)) {
                     int delay = Integer.parseInt(loadingDelay);
                     prefs.edit().putInt("invoiceFragmentLoadingDelay", delay).apply();
-                    Toast.makeText(SettingsActivity.this, "Time Delay set: "+delay, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, "Time Delay set: " + delay, Toast.LENGTH_SHORT).show();
                 }
             }
         });
 
 
-
-
         showSlider.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
+                if (isChecked) {
                     prefs.edit().putBoolean("showSlider", true).apply();
                 } else {
                     prefs.edit().putBoolean("showSlider", false).apply();

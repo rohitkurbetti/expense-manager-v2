@@ -2,7 +2,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
     android:padding="12dp"
-    android:background="#F0F0F0"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -14,14 +13,14 @@
         android:textSize="18sp"
         android:layout_marginLeft="24dp"
         android:textStyle="bold"
-        android:textColor="#2C2C2C"
+        android:textColor="?android:colorAccent"
         android:text="2025-05-11" />
 
     <TextView
         android:id="@+id/groupAmount"
         android:text="\u20B9 000"
-        android:textColor="#2C2C2C"
         android:textSize="16sp"
+        android:textColor="?colorPrimaryDark"
         android:textStyle="bold"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />

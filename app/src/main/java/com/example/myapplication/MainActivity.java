@@ -3,7 +3,6 @@ package com.example.myapplication;
 import static com.example.myapplication.ExpenseActivity.saveExpenseOnCloud;
 
 import android.Manifest;
-import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
@@ -16,10 +15,9 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.res.AssetManager;
-import android.content.res.Configuration;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,7 +28,6 @@ import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.util.Base64;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -39,6 +36,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -47,7 +45,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -56,7 +53,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
@@ -74,9 +70,11 @@ import com.example.myapplication.adapters.Expense;
 import com.example.myapplication.adapters.NestedListAdapter;
 import com.example.myapplication.adapters.NestedOtherListAdapter;
 import com.example.myapplication.adapters.OtherItemsAdapter;
+import com.example.myapplication.adapters.SuggestionAdapter;
 import com.example.myapplication.constants.InvoiceConstants;
 import com.example.myapplication.database.DatabaseHelper;
 import com.example.myapplication.database.ExpenseDbHelper;
+import com.example.myapplication.database.SuggestionHelper;
 import com.example.myapplication.dtos.DtoJson;
 import com.example.myapplication.dtos.DtoJsonEntity;
 import com.example.myapplication.dtos.ItemModel;
@@ -86,9 +84,13 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -153,29 +155,45 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
 
     public static final String SHARED_PREFS_FILE = "my_shared_prefs";
     private static final String FIRST_LAUNCH_KEY = "isFirstLaunch";
-    private final String csvFileName = "item_list.csv";
-    private boolean isIconOne = true;
-    boolean isLoadFromSystem = true;
-    private RecyclerView recyclerView;
-    private CustomAdapter adapter;
-    public static List<CustomItem> itemList;
-    DatabaseHelper dbHelper;
-    ExpenseDbHelper expenseDbHelper;
-    private ArrayAdapter<String> spinnerAdapter;
-    private Map<String, Integer[]> otherItemsMap;
-    ProgressDialog pd;
     private static final int REQUEST_MANAGE_STORAGE = 123;
     private static final int REQUEST_WRITE_STORAGE = 112;
+    public static List<CustomItem> itemList;
+    private final String csvFileName = "item_list.csv";
+    boolean isLoadFromSystem = true;
+    DatabaseHelper dbHelper;
+    ExpenseDbHelper expenseDbHelper;
+    ProgressDialog pd;
+    com.itextpdf.kernel.colors.Color headerColor1 = new DeviceRgb(102, 178, 255); //
+    com.itextpdf.kernel.colors.Color headerColor = new DeviceRgb(255, 128, 0); // Orange
+    com.itextpdf.kernel.colors.Color oddRowColor1 = new DeviceRgb(204, 229, 255); //
+    com.itextpdf.kernel.colors.Color oddRowColor = new DeviceRgb(255, 229, 204); // Light Orange
+    int total = 0;
+    String[] themes = {
+            "Red", "Blue", "Green", "Purple", "Orange",
+            "Teal", "Pink", "Cyan", "Lime", "Brown",
+            "Mint", "Coral", "Steel", "Lavender", "Mustard"
+    };
+    RecyclerView dashboardRecyclerView;
+    DashboardAdapter dashboardAdapter;
+    List<ItemModel> dashboardItemList;
+    View toggleHandle;
+    boolean isExpanded = true;
+    private boolean isIconOne = true;
+    private RecyclerView recyclerView;
+    private CustomAdapter adapter;
+    private ArrayAdapter<String> spinnerAdapter;
+    private Map<String, Integer[]> otherItemsMap;
     private boolean doubleBackToExitPressedOnce = false;
     private List<CustomItem> otherItemsList;
     private ListView otherListView;
@@ -183,41 +201,32 @@ public class MainActivity extends AppCompatActivity {
     private TextView selectDateLink;
     private TextView bannerTxt;
     private SharedPreferences sharedPreferences;
-
-    com.itextpdf.kernel.colors.Color headerColor1 = new DeviceRgb(102, 178, 255); //
-    com.itextpdf.kernel.colors.Color headerColor = new DeviceRgb(255, 128, 0); // Orange
-    com.itextpdf.kernel.colors.Color oddRowColor1 = new DeviceRgb(204, 229, 255); //
-    com.itextpdf.kernel.colors.Color oddRowColor = new DeviceRgb(255, 229, 204); // Light Orange
-    int total = 0;
     private OtherItemsAdapter otherItemsAdapter;
     private long typingDelayMillis = 70; // Delay between each character (in milliseconds)
     private Handler handler = new Handler();
-
-    String[] themes = {
-            "Red", "Blue", "Green", "Purple", "Orange",
-            "Teal", "Pink", "Cyan", "Lime", "Brown",
-            "Mint", "Coral", "Steel", "Lavender", "Mustard"
-    };
-
-    RecyclerView dashboardRecyclerView;
-    DashboardAdapter dashboardAdapter;
-    List<ItemModel> dashboardItemList;
-    View toggleHandle;
-    boolean isExpanded = true;
     private TextView dashboardText;
     private CardView cardDashboard;
     private ImageView exclamationImageView;
+    private AutoCompleteTextView etItemName;
+
+    private AutoCompleteTextView autoCompleteTextView;
+    private TextInputLayout textInputLayout;
+    private SuggestionAdapter suggestionAdapter;
+    private SuggestionHelper suggestionHelper;
+    private int reportsTotal;
 
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        applyUserTheme();  // Apply before setContentView
+        // applyUserTheme();  // Apply before setContentView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, MODE_PRIVATE);
 
         dbHelper = new DatabaseHelper(getApplicationContext());
+        suggestionHelper = new SuggestionHelper(getApplicationContext());
+
 
         // Show the hacker console dialog when the app launches
 //        showHackerConsoleDialog();
@@ -243,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         dashboardText.setText(String.valueOf("Most sold items in last 30 days"));
-        dashboardText.setTypeface(getResources().getFont(R.font.poppins_semibold));
+        // dashboardText.setTypeface(getResources().getFont(R.font.poppins_semibold));
 
         Map<String, Integer> map = new HashMap<>();
 
@@ -530,64 +539,8 @@ public class MainActivity extends AppCompatActivity {
         animator.start();
     }
 
-    private void applyUserTheme() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String theme = prefs.getString("app_theme", "Theme.ExpenseUtility");
+    // private void applyUserTheme() { ... } removed
 
-        switch (theme) {
-            case "Default":
-                setTheme(R.style.Base_Theme_MyApplication);
-                break;
-            case "Red":
-                setTheme(R.style.AppTheme_Red);
-                break;
-            case "Blue":
-                setTheme(R.style.AppTheme_Blue);
-                break;
-            case "Green":
-                setTheme(R.style.AppTheme_Green);
-                break;
-            case "Purple":
-                setTheme(R.style.AppTheme_Purple);
-                break;
-            case "Orange":
-                setTheme(R.style.AppTheme_Orange);
-                break;
-            case "Teal":
-                setTheme(R.style.AppTheme_Teal);
-                break;
-            case "Pink":
-                setTheme(R.style.AppTheme_Pink);
-                break;
-            case "Cyan":
-                setTheme(R.style.AppTheme_Cyan);
-                break;
-            case "Lime":
-                setTheme(R.style.AppTheme_Lime);
-                break;
-            case "Brown":
-                setTheme(R.style.AppTheme_Brown);
-                break;
-            case "Mint":
-                setTheme(R.style.AppTheme_Mint);
-                break;
-            case "Coral":
-                setTheme(R.style.AppTheme_Coral);
-                break;
-            case "Steel":
-                setTheme(R.style.AppTheme_Steel);
-                break;
-            case "Lavender":
-                setTheme(R.style.AppTheme_Lavender);
-                break;
-            case "Mustard":
-                setTheme(R.style.AppTheme_Mustard);
-                break;
-            default:
-                setTheme(R.style.Base_Theme_MyApplication);
-                break;
-        }
-    }
 
     private void showHackerConsoleDialog() {
         HackerConsoleDialog dialog = new HackerConsoleDialog(this);
@@ -1197,7 +1150,18 @@ public class MainActivity extends AppCompatActivity {
         Button btnAddToBucket = view.findViewById(R.id.btnAddToBucket);
         ImageView btnDelSpinnerItem = view.findViewById(R.id.btnDelSpinnerItem);
         Spinner spinnerBucket = view.findViewById(R.id.spinnerBucket);
-        EditText etItemName = view.findViewById(R.id.etItemName);
+        etItemName = view.findViewById(R.id.etItemName);
+
+        setupAutoComplete();
+
+
+        // Set long click listener for AutoCompleteTextView
+        setupAutoCompleteLongPress();
+
+        List<String> updateList = suggestionHelper.getAllSuggestions();
+
+        suggestionAdapter.updateSuggestionList(updateList);
+
         EditText etItemValue = view.findViewById(R.id.etItemValue);
         EditText etOtherItemQty = view.findViewById(R.id.otherItemQty);
         ImageView otherQtyUpBtn = view.findViewById(R.id.otherQtyUpBtn);
@@ -1431,89 +1395,165 @@ public class MainActivity extends AppCompatActivity {
         return itemMap;
     }
 
-    private void animateBackground(Spinner spinnerBucket, boolean isDelete) {
-        // Define the start and end colors.
-        // Start with current background color (assume transparent if not set)
-        int colorFrom = Color.WHITE;
-        int colorTo = Color.parseColor("#ffd966"); // Light yellow
-
-        // Determine whether the current theme is dark or light
-        int currentNightMode = spinnerBucket.getContext().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
-            // Dark theme: Use a subtle dark highlight (e.g., a muted gray or dark accent)
-            colorTo = Color.parseColor("#555555"); // Example: dark gray highlight for dark theme
-
-            TypedValue typedValue = new TypedValue();
-            getTheme().resolveAttribute(android.R.attr.colorBackgroundFloating, typedValue, true);
-            int alertDialogBgColor = typedValue.data;
-
-            colorFrom = alertDialogBgColor;
-        } else {
-            // Light theme: Use a light yellow highlight
-            colorTo = Color.parseColor("#ffd966"); // Light yellow
-            colorFrom = Color.WHITE;
-        }
-//        if(isDelete) {
-//            colorTo = Color.parseColor("#FF9999");
-//        }
-
-
-        // Create a ValueAnimator that goes from the start color to the end color and back to the start color.
-        ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo, colorFrom);
-        colorAnimation.setDuration(900); // Total animation duration in milliseconds
-        colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+    private void setupAutoCompleteLongPress() {
+        etItemName.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
-            public void onAnimationUpdate(ValueAnimator animator) {
-                spinnerBucket.setBackgroundColor((int) animator.getAnimatedValue());
+            public boolean onLongClick(View v) {
+                showAddSuggestionPopup();
+                return true; // Consume the long click event
             }
         });
-        colorAnimation.start();
     }
 
-    private void setListViewHeightBasedOnChildren(View listView, ViewGroup parent) {
-        ListAdapter listAdapter = this.otherListView.getAdapter();
-        if (listAdapter == null) {
+    private void showAddSuggestionPopup() {
+        // Get current text from AutoCompleteTextView
+        String currentText = etItemName.getText().toString().trim();
+
+        // Create options for the popup
+        final String[] options = {"Add new suggestion"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Suggestion Options");
+        builder.setItems(options, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case 0: // Add new suggestion
+                        showAddSuggestionDialog(currentText);
+                        break;
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void showAddSuggestionDialog(String initialText) {
+        // Create dialog with custom layout
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add New Suggestion");
+
+        // Inflate custom layout
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_add_suggestion, null);
+        builder.setView(dialogView);
+
+        // Get reference to EditText
+        final EditText etSuggestion = dialogView.findViewById(R.id.etSuggestion);
+
+        // Set initial text if available
+        if (initialText != null && !initialText.isEmpty()) {
+            etSuggestion.setText(initialText);
+            etSuggestion.setSelection(initialText.length()); // Place cursor at end
+        }
+
+        // Set up buttons
+        builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // This will be overridden to prevent automatic dismissal
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        final AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Override positive button to handle validation
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String newSuggestion = etSuggestion.getText().toString().trim();
+
+                if (newSuggestion.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Please enter a suggestion", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (newSuggestion.length() < 2) {
+                    Toast.makeText(MainActivity.this, "Suggestion too short", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Add the suggestion to database
+                addNewSuggestion(newSuggestion);
+                dialog.dismiss();
+            }
+        });
+    }
+
+    private void addNewSuggestion(String newSuggestion) {
+
+        if (newSuggestion == null || newSuggestion.trim().isEmpty()) {
             return;
         }
 
-        int totalHeight = 0;
-        int desiredWidth = View.MeasureSpec.makeMeasureSpec(listView.getWidth(), View.MeasureSpec.UNSPECIFIED);
+        new AsyncTask<String, Void, Boolean>() {
+            StringBuilder stringBuilder = new StringBuilder();
 
-        for (int i = 0; i < listAdapter.getCount(); i++) {
-            View listItem = listAdapter.getView(i, null, parent);
-            listItem.measure(desiredWidth, View.MeasureSpec.UNSPECIFIED);
-            totalHeight += listItem.getMeasuredHeight();
-        }
+            @Override
+            protected Boolean doInBackground(String... suggestions) {
+                try {
+                    long result = suggestionHelper.insertSuggestion(suggestions[0].trim());
+                    return result != -1;
+                } catch (Exception e) {
+                    Log.e("AddSuggestion", "Error adding suggestion: " + e.getMessage());
+                    return false;
+                }
+            }
 
-        ViewGroup.LayoutParams params = this.otherListView.getLayoutParams();
-        params.height = totalHeight + (this.otherListView.getDividerHeight() * (listAdapter.getCount() - 1));
-        listView.setLayoutParams(params);
-        listView.requestLayout();
+            @Override
+            protected void onPostExecute(Boolean success) {
+                if (success) {
+                    Toast.makeText(MainActivity.this, "Suggestion added successfully!", Toast.LENGTH_SHORT).show();
+                    // Reload suggestions
+                    new LoadSuggestionsTask().execute();
+                    for (int i = 0; i < suggestionAdapter.getCount(); i++) {
+                        stringBuilder.append(suggestionAdapter.getItem(i) + "\n");
+                    }
+
+                } else {
+                    Toast.makeText(MainActivity.this, "Suggestion already exists!", Toast.LENGTH_SHORT).show();
+                }
+
+                List<String> updateList = suggestionHelper.getAllSuggestions();
+
+                suggestionAdapter.updateSuggestionList(updateList);
+
+
+            }
+        }.execute(newSuggestion);
+
     }
 
-    private int getRandomNiceColor() {
-        // Define an array of specific nice-looking colors
-        int[] colors = new int[]{
-                Color.rgb(129, 199, 132),  // Light Green
-                Color.rgb(100, 181, 246),  // Light Blue
-                Color.rgb(255, 213, 79),   // Amber
-                Color.rgb(239, 83, 80),    // Light Red
-                Color.rgb(186, 104, 200),  // Light Purple
-                Color.rgb(255, 167, 38),   // Orange
-                Color.rgb(38, 198, 218),   // Cyan
-                Color.rgb(255, 112, 67),   // Deep Orange
-                Color.rgb(255, 241, 118),  // Light Yellow
-                Color.rgb(174, 213, 129)   // Pale Green
-        };
+    private void setupAutoComplete() {
 
-        // Generate a random index to pick a color
-        Random random = new Random();
-        int randomIndex = random.nextInt(colors.length);
 
-        // Return the randomly selected color
-        return colors[randomIndex];
+        // Create adapter with mutable list
+        suggestionAdapter = new SuggestionAdapter(this, InvoiceConstants.SUGGESTIONS);
+        etItemName.setAdapter(suggestionAdapter);
+
+        // Customize dropdown appearance
+        etItemName.setDropDownBackgroundDrawable(getResources().getDrawable(R.drawable.dropdown_background));
+        etItemName.setDropDownVerticalOffset(8);
+        etItemName.setDropDownHorizontalOffset(0);
+        etItemName.setDropDownWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        // Set threshold - show suggestions after 1 character
+        etItemName.setThreshold(1);
+
+        // Optional: Add item click listener
+        etItemName.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedItem = (String) parent.getItemAtPosition(position);
+            etItemName.setText(selectedItem);
+        });
     }
-
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void calculate(List<CustomItem> itemList, List<CustomItem> otherItemsList, String selectDate, Boolean otherItemsOnly) throws IOException {
@@ -1830,13 +1870,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (id == R.id.action_restore) {
-            try {
-                restoreFromBackedUpCsv();
-                restoreFromBackedUpExpensesCsv();
-            } catch (IOException e) {
-                Toast.makeText(this, "Restore Failed!!", Toast.LENGTH_LONG).show();
-                throw new RuntimeException(e);
-            }
+            restoreAllData();
+//                restoreFromBackedUpCsv();
+//                restoreFromBackedUpExpensesCsv();
             return true;
         }
 
@@ -1882,11 +1918,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (id == R.id.deleteSqliteData) {
-            dbHelper.deleteAllData();
-            expenseDbHelper.deleteAllData();
-            Toast.makeText(this, "All app data deleted", Toast.LENGTH_LONG).show();
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete All Data")
+                    .setMessage("Are you sure you want to delete all app data? This action cannot be undone.")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton("Yes, Delete", (dialog, which) -> {
+                        dbHelper.deleteAllData();
+                        expenseDbHelper.deleteAllData();
+                        Toast.makeText(this, "All app data deleted", Toast.LENGTH_LONG).show();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
             return true;
         }
+
 
         if (id == R.id.toggle_cloud_store) {
             SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
@@ -1990,6 +2035,12 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.cool) {
+            Intent intent = new Intent(this, MainActivity2.class);
+            startActivity(intent);
+            return true;
+        }
+
 
 //        if (id == R.id.action_load_from_file) {
 //            if(!isLoadFromSystem){
@@ -2006,6 +2057,72 @@ public class MainActivity extends AppCompatActivity {
         // Handle other action bar items...
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void restoreAllData() {
+        // Show progress dialog
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Restoring data...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        // Use AtomicInteger to track completion of both tasks
+        java.util.concurrent.atomic.AtomicInteger completed = new java.util.concurrent.atomic.AtomicInteger(0);
+        int[] invoicesCount = new int[1];
+        int[] expensesCount = new int[1];
+
+        try {
+            restoreFromBackedUpCsv(count -> {
+                invoicesCount[0] = count;
+                if (completed.incrementAndGet() == 2) {
+                    showCombinedDialog(invoicesCount[0], expensesCount[0], progressDialog);
+                }
+            });
+        } catch (IOException e) {
+            invoicesCount[0] = -1;
+            if (completed.incrementAndGet() == 2) {
+                showCombinedDialog(invoicesCount[0], expensesCount[0], progressDialog);
+            }
+        }
+
+        try {
+            restoreFromBackedUpExpensesCsv(count -> {
+                expensesCount[0] = count;
+                if (completed.incrementAndGet() == 2) {
+                    showCombinedDialog(invoicesCount[0], expensesCount[0], progressDialog);
+                }
+            });
+        } catch (IOException e) {
+            expensesCount[0] = -1;
+            if (completed.incrementAndGet() == 2) {
+                showCombinedDialog(invoicesCount[0], expensesCount[0], progressDialog);
+            }
+        }
+    }
+
+    private void showCombinedDialog(int invoicesRestored, int expensesRestored, ProgressDialog progressDialog) {
+        progressDialog.dismiss();
+
+        StringBuilder sb = new StringBuilder();
+        if (invoicesRestored == -1) {
+            sb.append("❌ Invoices backup file not found.\n");
+        } else {
+            sb.append("📄 Invoices restored: ").append(invoicesRestored).append(" rows\n");
+        }
+        if (expensesRestored == -1) {
+            sb.append("❌ Expenses backup file not found.\n");
+        } else {
+            sb.append("💰 Expenses restored: ").append(expensesRestored).append(" rows\n");
+        }
+
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle("Restore Summary")
+                .setMessage(sb.toString())
+                .setPositiveButton("OK", null)
+                .show();
+
+        Log.i("RestoreAll", sb.toString().replace("\n", " | "));
     }
 
     private void launchNewUI() {
@@ -2039,70 +2156,210 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    private void restoreFromBackedUpExpensesCsv() throws IOException {
-        List<Expense> expenses = new ArrayList<>();
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void restoreFromBackedUpExpensesCsv(Consumer<Integer> onComplete) throws IOException {
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
         String filePath = path + File.separator + "ExpensesBackup.csv";
-
         File docsDir = new File(filePath);
 
         if (!docsDir.exists()) {
             Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
+            if (onComplete != null) onComplete.accept(-1);
+            return;
         }
 
+        new Thread(() -> {
+            int counter = 0;
+            try (BufferedReader reader = new BufferedReader(new FileReader(docsDir))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+                    if (columns.length >= 8) {
+                        int expId = Integer.parseInt(columns[0].trim());
+                        String expPart = columns[1].trim().replace("\"", "");
+                        int expAmt = Integer.parseInt(columns[2].trim());
+                        String expCreatedDateTime = columns[3].trim();
+                        String expCreatedDate = columns[4].trim();
+                        int expYesterdaysBalance = Integer.parseInt(columns[5].trim());
+                        int expSales = Integer.parseInt(columns[6].trim());
+                        int expBalance = Integer.parseInt(columns[7].trim());
 
-        // Read CSV file
-        BufferedReader reader = new BufferedReader(new FileReader(docsDir));
-        String line;
-        boolean firstLine = true;
-        int counter = 0;
-        while ((line = reader.readLine()) != null) {
-//            if (firstLine) {
-//                firstLine = false; // Skip header line
-//                continue;
-//            }
+                        boolean expExists = expenseDbHelper.checkIfExpenseExistsFlag(expCreatedDate);
+                        if (!expExists) {
+                            boolean inserted = expenseDbHelper.restoreExpense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate,
+                                    expYesterdaysBalance, expSales, expBalance);
+                            if (inserted) counter++;
+                        }
 
-            // Split CSV by commas, handling JSON strings with quotes
-            String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+                        // Cloud sync (unchanged)
+                        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+                        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/expenses");
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                        LocalDate date = LocalDate.parse(expCreatedDate, formatter);
+                        String formattedYearMonth = date.format(DateTimeFormatter.ofPattern("MMM-yyyy"));
+                        String childPath = "/" + date.getYear() + "/" + formattedYearMonth + "/" + date;
+                        Expense expense = new Expense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate,
+                                expYesterdaysBalance, expSales, expBalance);
+                        databaseReference.child(childPath).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                if (!snapshot.exists()) {
+                                    databaseReference.child(childPath).setValue(expense);
+                                }
+                            }
 
-            if (columns.length >= 8) {
-                int expId = Integer.parseInt(columns[0].trim());
-                String expPart = columns[1].trim();
-                int expAmt = Integer.parseInt(columns[2].trim());
-                String expCreatedDateTime = columns[3].trim();
-                String expCreatedDate = columns[4].trim();
-                int expYesterdaysBalance = Integer.parseInt(columns[5].trim());
-                int expSales = Integer.parseInt(columns[6].trim());
-                int expBalance = Integer.parseInt(columns[7].trim());
-
-                expPart = expPart.replace("\"", "");
-
-                Expense expense = new Expense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
-
-                boolean expExists = expenseDbHelper.checkIfExpenseExistsFlag(expCreatedDate);
-
-                if (!expExists) {
-
-                    boolean isInserted = expenseDbHelper.insertExpense(null, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
-
-                    if (isInserted) {
-                        ++counter;
-                        //save expense on cloud
-                        saveExpenseOnCloud(this, expense.getExpenseDate(), expense);
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+                            }
+                        });
                     }
                 }
-
-
+            } catch (IOException e) {
+                Log.e("RestoreExpenses", "Error", e);
+                if (onComplete != null) onComplete.accept(-1);
+                return;
             }
-        }
-        Toast.makeText(this, "[Expenses] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
-        reader.close();
 
+            final int finalCounter = counter;
+            runOnUiThread(() -> {
+                if (onComplete != null) onComplete.accept(finalCounter);
+            });
+        }).start();
     }
 
 
+//    @RequiresApi(api = Build.VERSION_CODES.O)
+//    private void restoreFromBackedUpExpensesCsv() throws IOException {
+//        List<Expense> expenses = new ArrayList<>();
+//
+//        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+//        String filePath = path + File.separator + "ExpensesBackup.csv";
+//
+//        File docsDir = new File(filePath);
+//
+//        if (!docsDir.exists()) {
+//            Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
+//        }
+//
+//
+//        // Read CSV file
+//        BufferedReader reader = new BufferedReader(new FileReader(docsDir));
+//        String line;
+//        boolean firstLine = true;
+//        int counter = 0;
+//        while ((line = reader.readLine()) != null) {
+////            if (firstLine) {
+////                firstLine = false; // Skip header line
+////                continue;
+////            }
+//
+//            // Split CSV by commas, handling JSON strings with quotes
+//            String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+//
+//            if (columns.length >= 8) {
+//                int expId = Integer.parseInt(columns[0].trim());
+//                String expPart = columns[1].trim();
+//                int expAmt = Integer.parseInt(columns[2].trim());
+//                String expCreatedDateTime = columns[3].trim();
+//                String expCreatedDate = columns[4].trim();
+//                int expYesterdaysBalance = Integer.parseInt(columns[5].trim());
+//                int expSales = Integer.parseInt(columns[6].trim());
+//                int expBalance = Integer.parseInt(columns[7].trim());
+//
+//                expPart = expPart.replace("\"", "");
+//
+//                Expense expense = new Expense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
+//
+//                boolean expExists = expenseDbHelper.checkIfExpenseExistsFlag(expCreatedDate);
+//
+//                if (!expExists) {
+//
+//                    boolean isInserted = expenseDbHelper.restoreExpense(expId, expPart, expAmt, expCreatedDateTime, expCreatedDate, expYesterdaysBalance, expSales, expBalance);
+//
+//                    if (isInserted) {
+//                        ++counter;
+//                        //save expense on cloud
+////                        saveExpenseOnCloud(this, expense.getExpenseDate(), expense);
+//                    }
+//                }
+//
+//                //check if entry exists in cloud
+//
+//                String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+//                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/" + "expenses"); // Replace 'items' with your specific path
+//
+//                String childPath = "";
+//                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//                LocalDate date = LocalDate.parse(expCreatedDate, formatter);
+//
+//                String formattedYearMonth = date.format(DateTimeFormatter.ofPattern("MMM-yyyy"));
+//
+//                int year = date.getYear();
+//
+//
+//                childPath = "/" + year + "/" + (formattedYearMonth) + "/" + date;
+//
+//                String finalChildPath = childPath;
+//                databaseReference.child(finalChildPath).addListenerForSingleValueEvent(new ValueEventListener() {
+//
+//
+//                    @Override
+//                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                        if (snapshot.hasChildren()) {
+//                            boolean dataExists = false;
+////                                    for (DataSnapshot d3 : snapshot.getChildren()) {
+//                            Expense exp = snapshot.getValue(Expense.class);
+//                            if (
+//                                    Objects.equals(exp.getExpenseAmount(), expAmt) &&
+//                                            exp.getExpenseDateTime().equalsIgnoreCase(expCreatedDateTime) &&
+//                                            exp.getExpenseDate().equalsIgnoreCase(expCreatedDate)
+//                            ) {
+////                                    Toast.makeText(MainActivity.this, "Entry exists", Toast.LENGTH_SHORT).show();
+//                                dataExists = true;
+////                                            break;
+//                            } else {
+//                                dataExists = false;
+//                            }
+
+    /// /                                    }
+//
+//                            if (!dataExists) {
+//                                // Store user data
+//                                databaseReference.child(finalChildPath).setValue(expense)
+//                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                            @Override
+//                                            public void onSuccess(Void unused) {
+//                                                Toast.makeText(MainActivity.this, "Added", Toast.LENGTH_SHORT).show();
+//                                            }
+//                                        }).addOnFailureListener(new OnFailureListener() {
+//                                            @Override
+//                                            public void onFailure(@NonNull Exception e) {
+//                                                Toast.makeText(MainActivity.this, "Failed to upload", Toast.LENGTH_SHORT).show();
+//                                            }
+//                                        });
+//                            }
+//
+//                        } else {
+//                            databaseReference.child(finalChildPath).setValue(expense);
+//
+//                        }
+//
+//                    }
+//
+//                    @Override
+//                    public void onCancelled(@NonNull DatabaseError error) {
+//
+//                    }
+//                });
+//
+//
+//            }
+//        }
+//        Toast.makeText(this, "[Expenses] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
+//        reader.close();
+//
+//    }
     @RequiresApi(api = Build.VERSION_CODES.O)
     private List<String> getDatesFromNextDayToTodayMain(String inputDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -2122,98 +2379,277 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private void restoreFromBackedUpCsv() throws IOException {
-
-        List<DtoJsonEntity> invoices = new ArrayList<>();
-
+    private void restoreFromBackedUpCsv(Consumer<Integer> onComplete) throws IOException {
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
         String filePath = path + File.separator + "InvoicesBackup.csv";
-
         File docsDir = new File(filePath);
 
         if (!docsDir.exists()) {
             Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
+            if (onComplete != null) onComplete.accept(-1); // -1 indicates file missing
+            return;
         }
 
-        new Thread(new Runnable() {
-            private int counter = 0;
-
-            @Override
-            public void run() {
-                // Notify on the main thread
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "Restoring is started !", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-                // Read CSV file
-                BufferedReader reader = null;
-                try {
-                    reader = new BufferedReader(new FileReader(docsDir));
-                } catch (FileNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
+        new Thread(() -> {
+            int counter = 0;
+            BufferedReader reader = null;
+            try {
+                reader = new BufferedReader(new FileReader(docsDir));
                 String line;
-                boolean firstLine = true;
-                while (true) {
-                    try {
-                        if (!((line = reader.readLine()) != null)) break;
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-//            if (firstLine) {
-//                firstLine = false; // Skip header line
-//                continue;
-//            }
-
-                    // Split CSV by commas, handling JSON strings with quotes
+                while ((line = reader.readLine()) != null) {
                     String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
-
                     if (columns.length >= 5) {
-                        Long invoiceId = Long.parseLong(columns[0].trim());
+                        long invoiceId = Long.parseLong(columns[0].trim());
                         String itemListJson = columns[1].trim();
-                        Long total = Long.parseLong(columns[2].trim());
+                        long total = Long.parseLong(columns[2].trim());
                         String createdDateTime = columns[3].trim();
                         String createdDate = columns[4].trim();
 
                         DtoJson dtoJson = new DtoJson();
                         dtoJson.setCreateddtm(createdDateTime);
                         dtoJson.setDate(createdDate);
+                        dtoJson.setTotal(total);
 
                         boolean exists = dbHelper.entryExists(invoiceId, total);
-
                         if (!exists) {
                             long newRowId = dbHelper.saveInvoiceTransaction(itemListJson, total, MainActivity.this, dtoJson, invoiceId);
-                            if (newRowId != -1) {
-                                ++counter;
-                            }
+                            if (newRowId != -1) counter++;
                         }
+
+                        // Cloud sync (unchanged)
+                        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+                        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/invoices");
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                        LocalDateTime dateTime = LocalDateTime.parse(createdDateTime, formatter);
+                        String formattedYearMonth = dateTime.format(DateTimeFormatter.ofPattern("MMM-yyyy"));
+                        String time = dateTime.toLocalTime().toString().replace(":", "_");
+                        String childPath = "/" + dateTime.getYear() + "/" + formattedYearMonth + "/" + dateTime.toLocalDate() + "/" + time;
+                        String finalCreatedDateTime = createdDateTime;
+                        String finalChildPath = childPath;
+                        Long finalInvoiceId = invoiceId;
+                        databaseReference.child(finalChildPath).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                if (snapshot.hasChildren()) {
+                                    DtoJsonEntity dtoJsonEntity = snapshot.getValue(DtoJsonEntity.class);
+                                    if (dtoJsonEntity != null &&
+                                            Objects.equals(dtoJsonEntity.getInvoiceId(), finalInvoiceId) &&
+                                            Objects.equals(dtoJsonEntity.getTotal(), total) &&
+                                            dtoJsonEntity.getCreateddtm().equalsIgnoreCase(finalCreatedDateTime) &&
+                                            dtoJsonEntity.getDate().equalsIgnoreCase(createdDate)) {
+                                        // exists, do nothing
+                                    } else {
+                                        DtoJsonEntity entity = new DtoJsonEntity(finalInvoiceId, dtoJson.getName(), total, finalCreatedDateTime, createdDate, itemListJson);
+                                        databaseReference.child(finalChildPath).setValue(entity);
+                                    }
+                                } else {
+                                    DtoJsonEntity entity = new DtoJsonEntity(finalInvoiceId, dtoJson.getName(), total, finalCreatedDateTime, createdDate, itemListJson);
+                                    databaseReference.child(finalChildPath).setValue(entity);
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+                            }
+                        });
                     }
                 }
-
-
-                // Notify on the main thread
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "[Invoices] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-
+            } catch (IOException e) {
+                Log.e("RestoreInvoices", "Error", e);
+                if (onComplete != null) onComplete.accept(-1);
+                return;
+            } finally {
                 try {
-                    reader.close();
+                    if (reader != null) reader.close();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
                 }
             }
+
+            final int finalCounter = counter;
+            runOnUiThread(() -> {
+                if (onComplete != null) onComplete.accept(finalCounter);
+            });
         }).start();
-
-
     }
 
+//    @RequiresApi(api = Build.VERSION_CODES.O)
+//    private void restoreFromBackedUpCsv() throws IOException {
+//
+//        List<DtoJsonEntity> invoices = new ArrayList<>();
+//
+//        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+//        String filePath = path + File.separator + "InvoicesBackup.csv";
+//
+//        File docsDir = new File(filePath);
+//
+//        if (!docsDir.exists()) {
+//            Log.e("CSVReaderUtil", "File not found: " + docsDir.getAbsolutePath());
+//        }
+//
+//        new Thread(new Runnable() {
+//            private int counter = 0;
+//
+//            @Override
+//            public void run() {
+//                // Notify on the main thread
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Toast.makeText(MainActivity.this, "Restoring is started !", Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+//
+//                // Read CSV file
+//                BufferedReader reader = null;
+//                try {
+//                    reader = new BufferedReader(new FileReader(docsDir));
+//                } catch (FileNotFoundException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                String line;
+//                boolean firstLine = true;
+//                String createdDateTime;
+//                Long invoiceId;
+//                while (true) {
+//                    try {
+//                        if (!((line = reader.readLine()) != null)) break;
+//                    } catch (IOException e) {
+//                        throw new RuntimeException(e);
+//                    }
+////            if (firstLine) {
+////                firstLine = false; // Skip header line
+////                continue;
+////            }
+//
+//                    // Split CSV by commas, handling JSON strings with quotes
+//                    String[] columns = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+//
+//                    if (columns.length >= 5) {
+//                        invoiceId = Long.parseLong(columns[0].trim());
+//                        String itemListJson = columns[1].trim();
+//                        Long total = Long.parseLong(columns[2].trim());
+//                        createdDateTime = columns[3].trim();
+//                        String createdDate = columns[4].trim();
+//
+//                        DtoJson dtoJson = new DtoJson();
+//                        dtoJson.setCreateddtm(createdDateTime);
+//                        dtoJson.setDate(createdDate);
+//                        dtoJson.setTotal(total);
+//
+//                        boolean exists = dbHelper.entryExists(invoiceId, total);
+//
+//                        if (!exists) {
+//                            long newRowId = dbHelper.saveInvoiceTransaction(itemListJson, total, MainActivity.this, dtoJson, invoiceId);
+//                            if (newRowId != -1) {
+//                                ++counter;
+//                            }
+//                        }
+//
+//                        //check if entry exists in cloud
+//
+//                        String deviceModel = sharedPreferences.getString("model", Build.MODEL);
+//                        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(deviceModel + "/" + "invoices"); // Replace 'items' with your specific path
+//
+//                        String childPath = "";
+//                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//                        LocalDateTime dateTime = LocalDateTime.parse(createdDateTime, formatter);
+//
+//                        String formattedYearMonth = dateTime.format(DateTimeFormatter.ofPattern("MMM-yyyy"));
+//
+//                        int year = dateTime.getYear();
+//                        String time = dateTime.toLocalTime().toString();
+//                        time = time.replace(":", "_");
+//
+//
+//                        childPath = "/" + year + "/" + (formattedYearMonth) + "/" + dateTime.toLocalDate() + "/" + time;
+//
+//                        String finalCreatedDateTime = createdDateTime;
+//                        String finalChildPath = childPath;
+//                        Long finalInvoiceId = invoiceId;
+//                        databaseReference.child(finalChildPath).addListenerForSingleValueEvent(new ValueEventListener() {
+//
+//
+//                            @Override
+//                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                                if (snapshot.hasChildren()) {
+//                                    boolean dataExists = false;
+////                                    for (DataSnapshot d3 : snapshot.getChildren()) {
+//                                    DtoJsonEntity dtoJsonEntity = snapshot.getValue(DtoJsonEntity.class);
+//                                    if (
+//                                            Objects.equals(dtoJsonEntity.getInvoiceId(), finalInvoiceId) &&
+//                                                    Objects.equals(dtoJsonEntity.getTotal(), total) &&
+//                                                    dtoJsonEntity.getCreateddtm().equalsIgnoreCase(finalCreatedDateTime) &&
+//                                                    dtoJsonEntity.getDate().equalsIgnoreCase(createdDate)
+//                                    ) {
+////                                    Toast.makeText(MainActivity.this, "Entry exists", Toast.LENGTH_SHORT).show();
+//                                        dataExists = true;
+////                                            break;
+//                                    } else {
+//                                        dataExists = false;
+//                                    }
+////                                    }
+//
+//                                    if (!dataExists) {
+//                                        // Store user data
+//                                        databaseReference.child(finalChildPath).setValue(dtoJsonEntity)
+//                                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                                    @Override
+//                                                    public void onSuccess(Void unused) {
+
+    /// /                                                        Toast.makeText(MainActivity.this, "Added", Toast.LENGTH_SHORT).show();
+//                                                    }
+//                                                }).addOnFailureListener(new OnFailureListener() {
+//                                                    @Override
+//                                                    public void onFailure(@NonNull Exception e) {
+//                                                        Toast.makeText(MainActivity.this, "Failed to upload", Toast.LENGTH_SHORT).show();
+//                                                    }
+//                                                });
+//                                    }
+//
+//                                } else {
+//                                    DtoJsonEntity dtoJsonEntity = new DtoJsonEntity(
+//                                            finalInvoiceId,
+//                                            dtoJson.getName(),
+//                                            dtoJson.getTotal(),
+//                                            dtoJson.getCreateddtm(),
+//                                            dtoJson.getDate(),
+//                                            itemListJson);
+//                                    databaseReference.child(finalChildPath).setValue(dtoJsonEntity);
+//
+//                                }
+//
+//                            }
+//
+//                            @Override
+//                            public void onCancelled(@NonNull DatabaseError error) {
+//
+//                            }
+//                        });
+//
+//
+//                    }
+//                }
+//
+//
+//                // Notify on the main thread
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Toast.makeText(MainActivity.this, "[Invoices] Restored " + counter + " rows", Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+//
+//
+//                try {
+//                    reader.close();
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//        }).start();
+//
+//
+//    }
     private void launchExpenseManager() {
         Intent intent = new Intent(MainActivity.this, ExpenseActivity.class);
         startActivity(intent);
@@ -2561,6 +2997,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         getBtn.setOnClickListener(new View.OnClickListener() {
+            private int reportsTotal = 0;
+
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View v) {
@@ -2588,7 +3026,7 @@ public class MainActivity extends AppCompatActivity {
                             while (cursor.moveToNext()) {
                                 double itemVal = 0.0d;
                                 String jsonItemList = cursor.getString(1);
-                                total += cursor.getInt(2);
+                                reportsTotal += cursor.getInt(2);
                                 List<CustomItem> itemList = getParserJsonList(jsonItemList);
                                 for (CustomItem customItem : itemList) {
                                     if (map.containsKey(customItem.getName())) {
@@ -2607,15 +3045,15 @@ public class MainActivity extends AppCompatActivity {
                             builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    generateReportPdf(startDateFormatted, endDateFormatted, map, total, true);
-                                    total = 0;
+                                    generateReportPdf(startDateFormatted, endDateFormatted, map, reportsTotal, true);
+                                    reportsTotal = 0;
                                 }
                             });
                             builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    generateReportPdf(startDateFormatted, endDateFormatted, map, total, false);
-                                    total = 0;
+                                    generateReportPdf(startDateFormatted, endDateFormatted, map, reportsTotal, false);
+                                    reportsTotal = 0;
                                 }
                             });
 
@@ -2688,7 +3126,6 @@ public class MainActivity extends AppCompatActivity {
             PdfDocument pdfDocument = new PdfDocument(writer);
             Document document = new Document(pdfDocument);
 
-
             // Add title
             Paragraph title = new Paragraph("Invoice Report")
                     .setTextAlignment(TextAlignment.CENTER)
@@ -2707,9 +3144,7 @@ public class MainActivity extends AppCompatActivity {
             Image image = new Image(imageData);
             image.setWidth(30);
             image.setHeight(30);
-            // Add the image to the document
             document.add(image);
-
 
             // Add customer details
             Paragraph customerDetails = new Paragraph()
@@ -2723,13 +3158,11 @@ public class MainActivity extends AppCompatActivity {
 
             table.setTextAlignment(TextAlignment.CENTER);
 
-
             if (colorFul) {
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Item Description")).setBackgroundColor(headerColor));
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Rate")).setBackgroundColor(headerColor));
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Quantity")).setBackgroundColor(headerColor));
                 table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Amount")).setBackgroundColor(headerColor));
-
             } else {
                 table.addHeaderCell(new Cell().setBold().add(new Paragraph("Item Description")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
                 table.addHeaderCell(new Cell().setBold().add(new Paragraph("Rate")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
@@ -2737,10 +3170,8 @@ public class MainActivity extends AppCompatActivity {
                 table.addHeaderCell(new Cell().setBold().add(new Paragraph("Amount")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
             }
 
-
             if (map != null) {
                 int index = 0;
-
                 for (Map.Entry<String, Integer> entry : map.entrySet()) {
                     boolean isOdd = index++ % 2 == 1;
                     if (colorFul) {
@@ -2770,31 +3201,49 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            if (colorFul) {
-                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
-                table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph("Total")).setBackgroundColor(headerColor));
-                table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(headerColor));
-            } else {
-                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
-                table.addFooterCell(new Cell().setBold().add(new Paragraph("Total")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
-                table.addFooterCell(new Cell().setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+            // ================== UPDATED FOOTER ==================
+            // Calculate total quantity
+            int totalQuantity = 0;
+            if (map != null) {
+                for (int qty : map.values()) {
+                    totalQuantity += qty;
+                }
             }
 
+            if (colorFul) {
+                Cell emptyCell = new Cell().setBorder(null).setBackgroundColor(headerColor).add(new Paragraph(""));
+                Cell totalLabelCell = new Cell().setBorder(null).setBold().setBackgroundColor(headerColor)
+                        .add(new Paragraph("Total")).setTextAlignment(TextAlignment.CENTER);
+                Cell totalQtyCell = new Cell().setBorder(null).setBold().setBackgroundColor(headerColor)
+                        .add(new Paragraph(String.valueOf(totalQuantity))).setTextAlignment(TextAlignment.CENTER);
+                Cell totalAmtCell = new Cell().setBorder(null).setBold().setBackgroundColor(headerColor)
+                        .add(new Paragraph(String.valueOf(total))).setTextAlignment(TextAlignment.CENTER);
+
+                table.addFooterCell(emptyCell);
+                table.addFooterCell(totalLabelCell);
+                table.addFooterCell(totalQtyCell);
+                table.addFooterCell(totalAmtCell);
+            } else {
+                Cell emptyCell = new Cell().setBackgroundColor(ColorConstants.LIGHT_GRAY).add(new Paragraph(""));
+                Cell totalLabelCell = new Cell().setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)
+                        .add(new Paragraph("Total")).setTextAlignment(TextAlignment.CENTER);
+                Cell totalQtyCell = new Cell().setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)
+                        .add(new Paragraph(String.valueOf(totalQuantity))).setTextAlignment(TextAlignment.CENTER);
+                Cell totalAmtCell = new Cell().setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)
+                        .add(new Paragraph(String.valueOf(total))).setTextAlignment(TextAlignment.CENTER);
+
+                table.addFooterCell(emptyCell);
+                table.addFooterCell(totalLabelCell);
+                table.addFooterCell(totalQtyCell);
+                table.addFooterCell(totalAmtCell);
+            }
+            // ================== END OF UPDATED FOOTER ==================
 
             document.add(table);
 
             Paragraph footerDate = new Paragraph()
                     .add("\nReport generated on " + new SimpleDateFormat("dd-MM-yyyy hh:mm:ss a").format(new Date()) + "\n");
-
             document.add(footerDate);
-
-
-//            // Add total
-//            Paragraph total = new Paragraph("Total: " + dtoJson.getTotal())
-//                    .setTextAlignment(TextAlignment.RIGHT)
-//                    .setFontSize(15)
-//                    .setBold();
-//            document.add(total);
 
             document.close();
             writer.close();
@@ -2807,6 +3256,146 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+//    Old method (Working)
+//    @RequiresApi(api = Build.VERSION_CODES.O)
+//    private void generateReportPdf(String oldDateVal, String newDateVal, Map<String, Integer> map, int total, boolean colorFul) {
+//        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE);
+//
+//        try {
+//            String pdfPathMain = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+//            String pdfPath = pdfPathMain + File.separator + InvoiceConstants.EMPLOYER_NAME + File.separator + "reports";
+//
+//            if (!Files.exists(Paths.get(pdfPath))) {
+//                new File(pdfPath).mkdirs();
+//            }
+//
+//            LocalDateTime localDateTime = LocalDateTime.now();
+//            String frmtted = localDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+//
+//            File pdfFile = new File(pdfPath, "invoice_report_" + frmtted + ".pdf");
+//            PdfWriter writer = new PdfWriter(new FileOutputStream(pdfFile));
+//            PdfDocument pdfDocument = new PdfDocument(writer);
+//            Document document = new Document(pdfDocument);
+//
+//
+//            // Add title
+//            Paragraph title = new Paragraph("Invoice Report")
+//                    .setTextAlignment(TextAlignment.CENTER)
+//                    .setFontSize(20)
+//                    .setBold();
+//            document.add(title);
+//
+//            // Load the image from assets
+//            AssetManager assetManager = getApplicationContext().getAssets();
+//            InputStream inputStream = assetManager.open("analytics (1).png");
+//            byte[] imageBytes = new byte[inputStream.available()];
+//            inputStream.read(imageBytes);
+//            inputStream.close();
+//
+//            ImageData imageData = ImageDataFactory.create(imageBytes);
+//            Image image = new Image(imageData);
+//            image.setWidth(30);
+//            image.setHeight(30);
+//            // Add the image to the document
+//            document.add(image);
+//
+//
+//            // Add customer details
+//            Paragraph customerDetails = new Paragraph()
+//                    .add("From  " + getFormattedDate(oldDateVal) + " to " + getFormattedDate(newDateVal) + "\n")
+//                    .add("Total sales in (Rs) : " + total + "\n\n");
+//            document.add(customerDetails);
+//
+//            // Add table for items
+//            Table table = new Table(UnitValue.createPercentArray(new float[]{2, 1, 1, 1}))
+//                    .useAllAvailableWidth();
+//
+//            table.setTextAlignment(TextAlignment.CENTER);
+//
+//
+//            if (colorFul) {
+//                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Item Description")).setBackgroundColor(headerColor));
+//                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Rate")).setBackgroundColor(headerColor));
+//                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Quantity")).setBackgroundColor(headerColor));
+//                table.addHeaderCell(new Cell().setBorder(null).setBold().add(new Paragraph("Amount")).setBackgroundColor(headerColor));
+//
+//            } else {
+//                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Item Description")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+//                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Rate")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+//                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Quantity")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+//                table.addHeaderCell(new Cell().setBold().add(new Paragraph("Amount")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+//            }
+//
+//
+//            if (map != null) {
+//                int index = 0;
+//
+//                for (Map.Entry<String, Integer> entry : map.entrySet()) {
+//                    boolean isOdd = index++ % 2 == 1;
+//                    if (colorFul) {
+//                        if (isOdd) {
+//                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(entry.getKey()))));
+//                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
+//                            Integer qty = entry.getValue();
+//                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(price))));
+//                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(qty))));
+//                            table.addCell(new Cell().setBorder(null).setBackgroundColor(oddRowColor).add(new Paragraph(String.valueOf(price * qty))));
+//                        } else {
+//                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(entry.getKey()))));
+//                            Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
+//                            Integer qty = entry.getValue();
+//                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(price))));
+//                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(qty))));
+//                            table.addCell(new Cell().setBorder(null).add(new Paragraph(String.valueOf(price * qty))));
+//                        }
+//                    } else {
+//                        table.addCell(new Cell().add(new Paragraph(String.valueOf(entry.getKey()))));
+//                        Integer price = sharedPreferences.getInt(entry.getKey().toString().toUpperCase(Locale.getDefault()), 0);
+//                        Integer qty = entry.getValue();
+//                        table.addCell(new Cell().add(new Paragraph(String.valueOf(price))));
+//                        table.addCell(new Cell().add(new Paragraph(String.valueOf(qty))));
+//                        table.addCell(new Cell().add(new Paragraph(String.valueOf(price * qty))));
+//                    }
+//                }
+//            }
+//
+//            if (colorFul) {
+//                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
+//                table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph("Total")).setBackgroundColor(headerColor));
+//                table.addFooterCell(new Cell().setBorder(null).setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(headerColor));
+//            } else {
+//                table.addFooterCell(new Cell(1, 2).setBorder(null).setBold().add(new Paragraph("")));
+//                table.addFooterCell(new Cell().setBold().add(new Paragraph("Total")).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+//                table.addFooterCell(new Cell().setBold().add(new Paragraph(String.valueOf(total))).setBackgroundColor(ColorConstants.LIGHT_GRAY));
+//            }
+//
+//
+//            document.add(table);
+//
+//            Paragraph footerDate = new Paragraph()
+//                    .add("\nReport generated on " + new SimpleDateFormat("dd-MM-yyyy hh:mm:ss a").format(new Date()) + "\n");
+//
+//            document.add(footerDate);
+//
+//
+
+    /// /            // Add total
+    /// /            Paragraph total = new Paragraph("Total: " + dtoJson.getTotal())
+    /// /                    .setTextAlignment(TextAlignment.RIGHT)
+    /// /                    .setFontSize(15)
+    /// /                    .setBold();
+    /// /            document.add(total);
+//
+//            document.close();
+//            writer.close();
+//            openGeneratedPDF(pdfFile);
+//
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
     @RequiresApi(api = Build.VERSION_CODES.O)
     private String getFormattedDate(String dateVal) {
         LocalDate localDateFmtted = LocalDate.parse(dateVal, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -2853,7 +3442,7 @@ public class MainActivity extends AppCompatActivity {
             while (cursor.moveToNext()) {
                 itemVal = 0.0d;
                 String jsonItemList = cursor.getString(1);
-                total += cursor.getInt(2);
+                reportsTotal += cursor.getInt(2);
                 List<CustomItem> itemList = getParserJsonList(jsonItemList);
                 for (CustomItem customItem : itemList) {
                     itemVal += Double.valueOf(customItem.getSliderValue());
@@ -2874,15 +3463,15 @@ public class MainActivity extends AppCompatActivity {
             builder1.setPositiveButton("Color", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    generateReportPdf(oldDateVal, newDateVal, map, total, true);
-                    total = 0;
+                    generateReportPdf(oldDateVal, newDateVal, map, reportsTotal, true);
+                    reportsTotal = 0;
                 }
             });
             builder1.setNegativeButton("B&W", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    generateReportPdf(oldDateVal, newDateVal, map, total, false);
-                    total = 0;
+                    generateReportPdf(oldDateVal, newDateVal, map, reportsTotal, false);
+                    reportsTotal = 0;
                 }
             });
 
@@ -2915,8 +3504,9 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setCancelable(false);
 
-        builder.setTitle("Are you sure you want to delete all the cloud data?");
-
+        builder.setTitle("Delete all the cloud data?");
+        builder.setMessage("Are you sure you want to delete all the cloud data?");
+        builder.setIcon(android.R.drawable.ic_dialog_alert);
         builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -2970,33 +3560,78 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendEmailWithAttachment() {
-
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
-        String filePath = path + File.separator + "InvoicesBackup.csv";
+        String invoicesFilePath = path + File.separator + "InvoicesBackup.csv";
+        String expensesFilePath = path + File.separator + "ExpensesBackup.csv";
 
-        File file = new File(filePath);
+        File invoicesFile = new File(invoicesFilePath);
+        File expensesFile = new File(expensesFilePath);
 
-        Uri uri = FileProvider.getUriForFile(this, this.getApplicationContext().getPackageName() + ".provider", file);
+        ArrayList<Uri> fileUris = new ArrayList<>();
 
-        Intent emailIntent = new Intent(Intent.ACTION_SEND);
-        emailIntent.setType("text/csv");
+        // Add InvoicesBackup.csv if it exists
+        if (invoicesFile.exists()) {
+            Uri invoicesUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", invoicesFile);
+            fileUris.add(invoicesUri);
+        }
+
+        // Add ExpensesBackup.csv if it exists
+        if (expensesFile.exists()) {
+            Uri expensesUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", expensesFile);
+            fileUris.add(expensesUri);
+        }
+
+        // If no files exist, show a toast and return
+        if (fileUris.isEmpty()) {
+            Toast.makeText(this, "No backup files found to attach", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent emailIntent = new Intent(Intent.ACTION_SEND_MULTIPLE);
+        emailIntent.setType("text/csv");  // MIME type for CSV files
         emailIntent.putExtra(Intent.EXTRA_EMAIL, InvoiceConstants.EMAIL_RECIPIENTS);
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoices Backup " + new SimpleDateFormat("dd-MM-yyyy hh:mm a").format(new Date()));
-//        emailIntent.putExtra(Intent.EXTRA_TEXT, "Email body text");
-
-
-        emailIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoice Manager\nBackup Files " + new SimpleDateFormat("dd-MM-yyyy hh:mm a").format(new Date()));
+        emailIntent.putExtra(Intent.EXTRA_STREAM, fileUris);
+        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); // Grant permission to read URIs
+//        emailIntent.putExtra(Intent.EXTRA_TEXT, "Invoice manager backup files");
 
         try {
             startActivity(Intent.createChooser(emailIntent, "Send email using..."));
         } catch (ActivityNotFoundException ex) {
             Log.e("MainActivity", "No email client found", ex);
+            Toast.makeText(this, "No email app installed", Toast.LENGTH_SHORT).show();
         }
-
 
     }
 
 
+//    private void sendEmailWithAttachment() {
+//
+//        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString();
+//        String filePath = path + File.separator + "InvoicesBackup.csv";
+//
+//        File file = new File(filePath);
+//
+//        Uri uri = FileProvider.getUriForFile(this, this.getApplicationContext().getPackageName() + ".provider", file);
+//
+//        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+//        emailIntent.setType("text/csv");
+//        emailIntent.putExtra(Intent.EXTRA_EMAIL, InvoiceConstants.EMAIL_RECIPIENTS);
+//        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoices Backup " + new SimpleDateFormat("dd-MM-yyyy hh:mm a").format(new Date()));
+
+    /// /        emailIntent.putExtra(Intent.EXTRA_TEXT, "Email body text");
+//
+//
+//        emailIntent.putExtra(Intent.EXTRA_STREAM, uri);
+//
+//        try {
+//            startActivity(Intent.createChooser(emailIntent, "Send email using..."));
+//        } catch (ActivityNotFoundException ex) {
+//            Log.e("MainActivity", "No email client found", ex);
+//        }
+//
+//
+//    }
     private void showCustomToast(String message) {
         // Inflate the custom layout
         LayoutInflater inflater = getLayoutInflater();
@@ -3019,4 +3654,59 @@ public class MainActivity extends AppCompatActivity {
         toast.show();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (suggestionHelper != null) {
+            suggestionHelper.close();
+        }
+    }
+
+    private class LoadSuggestionsTask extends AsyncTask<Void, Void, List<String>> {
+
+        @Override
+        protected List<String> doInBackground(Void... voids) {
+            // Insert default suggestions if table is empty
+            suggestionHelper.insertDefaultSuggestionsIfNeeded();
+
+            // Get all suggestions from database
+            return suggestionHelper.getAllSuggestions();
+        }
+
+        @Override
+        protected void onPostExecute(List<String> suggestions) {
+            // Update adapter with suggestions
+            suggestionAdapter.clear();
+            suggestionAdapter.addAll(suggestions);
+            suggestionAdapter.notifyDataSetChanged();
+
+            StringBuilder stringBuilder = new StringBuilder();
+
+            suggestions.forEach(s -> stringBuilder.append(s).append("\n"));
+
+
+            Log.i("Sugg", "" + stringBuilder);
+
+        }
+
+        // Method to add new suggestion (you can call this from a button or other event)
+        private void addNewSuggestion(String newSuggestion) {
+            new AsyncTask<String, Void, Boolean>() {
+                @Override
+                protected Boolean doInBackground(String... suggestions) {
+                    long result = suggestionHelper.insertSuggestion(suggestions[0]);
+                    return result != -1; // -1 means insertion failed (duplicate)
+                }
+
+                @Override
+                protected void onPostExecute(Boolean success) {
+                    if (success) {
+                        // Reload suggestions
+                        new LoadSuggestionsTask().execute();
+                    }
+                }
+            }.execute(newSuggestion);
+        }
+
+    }
 }
